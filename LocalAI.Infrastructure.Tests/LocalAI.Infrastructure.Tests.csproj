@@ -15,6 +15,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LocalAI.Application\LocalAI.Application.csproj" />
+    <ProjectReference Include="..\LocalAI.Domain\LocalAI.Domain.csproj" />
+    <ProjectReference Include="..\LocalAI.Infrastructure\LocalAI.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
