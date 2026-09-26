@@ -1,0 +1,76 @@
+# =========================
+# Visual Studio
+# =========================
+
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =========================
+# .NET Build Output
+# =========================
+
+bin/
+obj/
+
+# =========================
+# Test Results
+# =========================
+
+TestResults/
+*.trx
+
+# =========================
+# Coverage
+# =========================
+
+coverage/
+*.coverage
+*.coveragexml
+
+# =========================
+# Rider / ReSharper
+# =========================
+
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+
+logs/
+*.log
+
+# =========================
+# Local Application Data
+# =========================
+
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# =========================
+# Local AI Models
+# =========================
+
+models/*.gguf
+models/*.bin
+models/*.safetensors
+
+# =========================
+# Local configuration
+# =========================
+
+appsettings.Local.json
