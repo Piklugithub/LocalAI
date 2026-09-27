@@ -1,13 +1,17 @@
 ﻿using LocalAI.Application.Abstractions;
+using LocalAI.Application.Configuration;
 using LocalAI.Application.Models;
 using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
+using Microsoft.Extensions.Options;
 
 namespace LocalAI.Application.Services;
 
 public sealed class ChatService(
     IInferenceEngine inferenceEngine,
-    IConversationRepository conversationRepository) : IChatService
+    IConversationRepository conversationRepository,
+    IModelService modelService,
+    IOptions<InferenceOptions> inferenceOptions) : IChatService
 {
     public async Task<ChatResponse> SendMessageAsync(
         ChatRequest request,
@@ -21,6 +25,18 @@ public sealed class ChatService(
                 "User message cannot be empty.",
                 nameof(request));
         }
+
+        var model = await modelService.GetDefaultModelAsync(
+            cancellationToken);
+
+        if (model is null)
+        {
+            throw new InvalidOperationException(
+                "No local AI model is available. " +
+                "Add a GGUF model to the models directory.");
+        }
+
+        var options = inferenceOptions.Value;
 
         var userMessage = new ChatMessage(
             request.Conversation.Id,
@@ -39,9 +55,12 @@ public sealed class ChatService(
 
         var inferenceRequest = new InferenceRequest
         {
-            ModelId = string.Empty,
-            ModelPath = string.Empty,
-            Messages = messages
+            ModelId = model.Id.ToString(),
+            ModelPath = model.FilePath,
+            Messages = messages,
+            Temperature = options.Temperature,
+            MaxTokens = options.MaxTokens,
+            ContextSize = options.ContextSize
         };
 
         var response = await inferenceEngine.GenerateAsync(

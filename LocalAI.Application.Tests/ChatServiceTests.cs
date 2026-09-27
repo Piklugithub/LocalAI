@@ -3,6 +3,8 @@ using LocalAI.Application.Services;
 using LocalAI.Application.Tests.Fakes;
 using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
+using LocalAI.Application.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace LocalAI.Application.Tests;
 
@@ -16,9 +18,16 @@ public class ChatServiceTests
 
         var repository = new FakeConversationRepository();
 
+        var modelService = new FakeModelService();
+
+        var inferenceOptions = Options.Create(
+        new InferenceOptions());
+
         var chatService = new ChatService(
             inferenceEngine,
-            repository);
+            repository,
+            modelService,
+            inferenceOptions);
 
         var conversation = new Conversation(
             "Test Conversation");

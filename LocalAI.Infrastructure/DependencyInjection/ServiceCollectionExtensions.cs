@@ -1,5 +1,6 @@
 ﻿using LocalAI.Application.Abstractions;
 using LocalAI.Infrastructure.Persistence;
+using LocalAI.Infrastructure.Providers;
 using LocalAI.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +13,8 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddSingleton<DatabasePathProvider>();
+
+        services.AddSingleton<ModelDirectoryPathProvider>();
 
         services.AddDbContext<LocalAIDbContext>(
             (serviceProvider, options) =>

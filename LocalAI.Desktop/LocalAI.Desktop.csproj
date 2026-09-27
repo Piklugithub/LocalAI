@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LocalAI.Application\LocalAI.Application.csproj" />
+    <ProjectReference Include="..\LocalAI.Inference\LocalAI.Inference.csproj" />
     <ProjectReference Include="..\LocalAI.Infrastructure\LocalAI.Infrastructure.csproj" />
   </ItemGroup>
 

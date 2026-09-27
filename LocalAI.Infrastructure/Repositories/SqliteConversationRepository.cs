@@ -28,9 +28,11 @@ public sealed class SqliteConversationRepository(
     }
 
     public async Task SaveAsync(
-        Conversation conversation,
-        CancellationToken cancellationToken = default)
+    Conversation conversation,
+    CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(conversation);
+
         var existingConversation =
             await dbContext.Conversations
                 .Include(x => x.Messages)
@@ -49,19 +51,45 @@ public sealed class SqliteConversationRepository(
             existingConversation.Title = conversation.Title;
             existingConversation.UpdatedAt = conversation.UpdatedAt;
 
-            existingConversation.Messages.Clear();
+            var domainMessageIds = conversation.Messages
+                .Select(x => x.Id)
+                .ToHashSet();
 
+            // Remove messages that no longer exist in the domain conversation.
+            var messagesToRemove = existingConversation.Messages
+                .Where(x => !domainMessageIds.Contains(x.Id))
+                .ToList();
+
+            foreach (var message in messagesToRemove)
+            {
+                dbContext.Messages.Remove(message);
+            }
+
+            // Add new messages and update existing messages.
             foreach (var message in conversation.Messages)
             {
-                existingConversation.Messages.Add(
-                    new ChatMessageRecord
-                    {
-                        Id = message.Id,
-                        ConversationId = message.ConversationId,
-                        Role = message.Role,
-                        Content = message.Content,
-                        CreatedAt = message.CreatedAt
-                    });
+                var existingMessage =
+                    existingConversation.Messages
+                        .FirstOrDefault(x => x.Id == message.Id);
+
+                if (existingMessage is null)
+                {
+                    dbContext.Messages.Add(
+                        new ChatMessageRecord
+                        {
+                            Id = message.Id,
+                            ConversationId = message.ConversationId,
+                            Role = message.Role,
+                            Content = message.Content,
+                            CreatedAt = message.CreatedAt
+                        });
+                }
+                else
+                {
+                    existingMessage.Role = message.Role;
+                    existingMessage.Content = message.Content;
+                    existingMessage.CreatedAt = message.CreatedAt;
+                }
             }
         }
 

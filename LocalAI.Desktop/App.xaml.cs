@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using LocalAI.Infrastructure.DependencyInjection;
+using LocalAI.Inference.DependencyInjection;
 
 using LocalAI.Application.Configuration;
 using LocalAI.Application.DependencyInjection;
@@ -48,6 +49,8 @@ public partial class App : System.Windows.Application
                 services.AddLocalAIApplication();
 
                 services.AddLocalAIInfrastructure();
+
+                services.AddLocalAIInference();
 
                 services.AddSingleton<MainWindow>();
             })

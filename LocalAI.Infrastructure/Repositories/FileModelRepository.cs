@@ -1,26 +1,20 @@
 ﻿using LocalAI.Application.Abstractions;
-using LocalAI.Application.Configuration;
 using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
+using LocalAI.Infrastructure.Providers;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace LocalAI.Infrastructure.Repositories;
 
 public sealed class FileModelRepository(
-    IOptions<InferenceOptions> options,
+    ModelDirectoryPathProvider modelDirectoryPathProvider,
     ILogger<FileModelRepository> logger) : IModelRepository
 {
     public Task<IReadOnlyList<LocalModel>> GetAllAsync(
         CancellationToken cancellationToken = default)
     {
-        var modelsDirectory = options.Value.ModelsDirectory;
-
-        var directoryPath = Path.IsPathRooted(modelsDirectory)
-            ? modelsDirectory
-            : Path.Combine(
-                AppContext.BaseDirectory,
-                modelsDirectory);
+        var directoryPath =
+            modelDirectoryPathProvider.GetModelsDirectory();
 
         logger.LogDebug(
             "Searching for local models in {ModelsDirectory}.",
@@ -60,6 +54,7 @@ public sealed class FileModelRepository(
             })
             .ToList();
 
-        return Task.FromResult<IReadOnlyList<LocalModel>>(models);
+        return Task.FromResult<IReadOnlyList<LocalModel>>(
+            models);
     }
 }

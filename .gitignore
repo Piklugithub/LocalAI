@@ -64,7 +64,8 @@ data/
 # =========================
 # Local AI Models
 # =========================
-
+models/*
+!models/.gitkeep
 models/*.gguf
 models/*.bin
 models/*.safetensors

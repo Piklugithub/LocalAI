@@ -15,4 +15,8 @@ public sealed class InferenceOptions
     public int MaxTokens { get; set; } = 1024;
 
     public int GpuLayers { get; set; }
+
+    public int Threads { get; set; } = 0;
+
+    public bool FlashAttention { get; set; }
 }

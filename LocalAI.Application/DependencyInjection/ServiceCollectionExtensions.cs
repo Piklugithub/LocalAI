@@ -7,15 +7,11 @@ namespace LocalAI.Application.DependencyInjection;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddLocalAIApplication(
-        this IServiceCollection services)
+     this IServiceCollection services)
     {
         services.AddScoped<IChatService, ChatService>();
 
         services.AddSingleton<IModelService, ModelService>();
-
-        services.AddSingleton<
-            IInferenceEngine,
-            NotConfiguredInferenceEngine>();
 
         return services;
     }
