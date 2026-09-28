@@ -18,4 +18,19 @@ public sealed class FakeInferenceEngine : IInferenceEngine
                 OutputTokens = 5
             });
     }
+
+    public IAsyncEnumerable<string> GenerateStreamingAsync(
+    InferenceRequest request,
+    CancellationToken cancellationToken = default)
+    {
+        return StreamResponseAsync();
+    }
+
+    private static async IAsyncEnumerable<string> StreamResponseAsync()
+    {
+        yield return "Test ";
+        yield return "response";
+
+        await Task.CompletedTask;
+    }
 }

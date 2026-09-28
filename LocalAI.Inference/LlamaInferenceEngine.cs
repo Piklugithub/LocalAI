@@ -51,4 +51,42 @@ public sealed class LlamaInferenceEngine(
             Duration = stopwatch.Elapsed
         };
     }
+
+    public async IAsyncEnumerable<string> GenerateStreamingAsync(
+    InferenceRequest request,
+    [System.Runtime.CompilerServices.EnumeratorCancellation]
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.ModelPath))
+        {
+            throw new ArgumentException(
+                "A model path is required.",
+                nameof(request));
+        }
+
+        if (request.Messages.Count == 0)
+        {
+            throw new ArgumentException(
+                "At least one message is required.",
+                nameof(request));
+        }
+
+        await runtime.LoadModelAsync(
+            request.ModelPath,
+            request.ContextSize,
+            cancellationToken);
+
+        await foreach (
+            var token in runtime.GenerateStreamingAsync(
+                request.Messages,
+                request.Temperature,
+                request.MaxTokens,
+                cancellationToken)
+                .WithCancellation(cancellationToken))
+        {
+            yield return token;
+        }
+    }
 }

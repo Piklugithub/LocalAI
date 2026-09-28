@@ -86,4 +86,91 @@ public sealed class ChatService(
             OutputTokens = response.OutputTokens
         };
     }
+
+    public async IAsyncEnumerable<string> StreamMessageAsync(
+    ChatRequest request,
+    [System.Runtime.CompilerServices.EnumeratorCancellation]
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (string.IsNullOrWhiteSpace(request.UserMessage))
+        {
+            throw new ArgumentException(
+                "User message cannot be empty.",
+                nameof(request));
+        }
+
+        var model = await modelService.GetDefaultModelAsync(
+            cancellationToken);
+
+        if (model is null)
+        {
+            throw new InvalidOperationException(
+                "No local AI model is available. " +
+                "Add a GGUF model to the models directory.");
+        }
+
+        var options = inferenceOptions.Value;
+
+        var userMessage = new ChatMessage(
+            request.Conversation.Id,
+            ChatRole.User,
+            request.UserMessage);
+
+        request.Conversation.AddMessage(userMessage);
+
+        var messages = request.Conversation.Messages
+            .Select(message => new ChatMessageRequest
+            {
+                Role = message.Role,
+                Content = message.Content
+            })
+            .ToList();
+
+        var inferenceRequest = new InferenceRequest
+        {
+            ModelId = model.Id.ToString(),
+            ModelPath = model.FilePath,
+            Messages = messages,
+            Temperature = options.Temperature,
+            MaxTokens = options.MaxTokens,
+            ContextSize = options.ContextSize
+        };
+
+        var responseBuilder =
+            new System.Text.StringBuilder();
+
+        await foreach (
+            var token in inferenceEngine
+                .GenerateStreamingAsync(
+                    inferenceRequest,
+                    cancellationToken)
+                .WithCancellation(cancellationToken))
+        {
+            responseBuilder.Append(token);
+
+            yield return token;
+        }
+
+        var assistantContent =
+            responseBuilder
+                .ToString()
+                .Trim();
+
+        if (!string.IsNullOrWhiteSpace(assistantContent))
+        {
+            var assistantMessage = new ChatMessage(
+                request.Conversation.Id,
+                ChatRole.Assistant,
+                assistantContent);
+
+            request.Conversation.AddMessage(
+                assistantMessage);
+
+            await conversationRepository.SaveAsync(
+                request.Conversation,
+                cancellationToken);
+        }
+    }
 }

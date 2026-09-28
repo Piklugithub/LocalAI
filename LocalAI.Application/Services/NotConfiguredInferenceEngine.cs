@@ -13,4 +13,12 @@ public sealed class NotConfiguredInferenceEngine
         throw new InvalidOperationException(
             "The local inference engine has not been configured yet.");
     }
+
+    public IAsyncEnumerable<string> GenerateStreamingAsync(
+    InferenceRequest request,
+    CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException(
+            "The local inference engine has not been configured yet.");
+    }
 }

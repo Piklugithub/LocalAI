@@ -1,8 +1,10 @@
-﻿using System.Windows;
+﻿using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Input;
 using LocalAI.Application.Abstractions;
 using LocalAI.Application.Configuration;
 using LocalAI.Application.Models;
+using LocalAI.Desktop.ViewModels;
 using LocalAI.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,7 +18,12 @@ public partial class MainWindow
     private readonly IModelService _modelService;
     private readonly IServiceScopeFactory _scopeFactory;
 
+    private readonly ObservableCollection<ChatMessageViewModel>
+        _messages = [];
+
     private Conversation? _conversation;
+
+    private CancellationTokenSource? _generationCancellation;
 
     public MainWindow(
         IOptions<ApplicationOptions> applicationOptions,
@@ -29,6 +36,8 @@ public partial class MainWindow
         _logger = logger;
         _modelService = modelService;
         _scopeFactory = scopeFactory;
+
+        MessagesItemsControl.ItemsSource = _messages;
 
         Title = applicationOptions.Value.Name;
 
@@ -53,8 +62,10 @@ public partial class MainWindow
 
             if (models.Count == 0)
             {
-                ResponseTextBox.Text =
-                    "No local GGUF model was found.";
+                _messages.Add(
+                    new ChatMessageViewModel(
+                        false,
+                        "No local GGUF model was found."));
 
                 SendButton.IsEnabled = false;
 
@@ -64,8 +75,9 @@ public partial class MainWindow
             _conversation = new Conversation(
                 "LocalAI Test Conversation");
 
-            ResponseTextBox.Text =
-                $"Model ready: {models[0].Name}";
+            _logger.LogInformation(
+                "Model ready: {ModelName}.",
+                models[0].Name);
         }
         catch (Exception ex)
         {
@@ -73,8 +85,10 @@ public partial class MainWindow
                 ex,
                 "Failed to initialize LocalAI.");
 
-            ResponseTextBox.Text =
-                $"Initialization error: {ex.Message}";
+            _messages.Add(
+                new ChatMessageViewModel(
+                    false,
+                    $"Initialization error: {ex.Message}"));
 
             SendButton.IsEnabled = false;
         }
@@ -84,6 +98,12 @@ public partial class MainWindow
         object sender,
         RoutedEventArgs e)
     {
+        if (_generationCancellation is not null)
+        {
+            _generationCancellation.Cancel();
+            return;
+        }
+
         await SendMessageAsync();
     }
 
@@ -98,6 +118,11 @@ public partial class MainWindow
 
         e.Handled = true;
 
+        if (_generationCancellation is not null)
+        {
+            return;
+        }
+
         await SendMessageAsync();
     }
 
@@ -105,8 +130,10 @@ public partial class MainWindow
     {
         if (_conversation is null)
         {
-            ResponseTextBox.Text =
-                "No conversation is available.";
+            _messages.Add(
+                new ChatMessageViewModel(
+                    false,
+                    "No conversation is available."));
 
             return;
         }
@@ -118,14 +145,34 @@ public partial class MainWindow
             return;
         }
 
+        _generationCancellation =
+            new CancellationTokenSource();
+
         try
         {
-            SendButton.IsEnabled = false;
-            MessageTextBox.IsEnabled = false;
+            // Add the user's message to the UI.
+            _messages.Add(
+                new ChatMessageViewModel(
+                    true,
+                    message));
 
-            ResponseTextBox.Text = "Thinking...";
+            // Create an empty assistant message.
+            // Streaming tokens will be appended to this.
+            var assistantMessage =
+                new ChatMessageViewModel(
+                    false,
+                    string.Empty);
+
+            _messages.Add(assistantMessage);
 
             MessageTextBox.Clear();
+
+            SendButton.IsEnabled = true;
+            SendButton.Content = "Cancel";
+
+            MessageTextBox.IsEnabled = false;
+
+            ScrollChatToBottom();
 
             using var scope =
                 _scopeFactory.CreateScope();
@@ -134,25 +181,32 @@ public partial class MainWindow
                 scope.ServiceProvider
                     .GetRequiredService<IChatService>();
 
-            var response =
-                await chatService.SendMessageAsync(
-                    new ChatRequest
-                    {
-                        Conversation = _conversation,
-                        UserMessage = message
-                    });
+            var request = new ChatRequest
+            {
+                Conversation = _conversation,
+                UserMessage = message
+            };
 
-            ResponseTextBox.Text =
-                response.Content;
+            await foreach (
+                var token in chatService
+                    .StreamMessageAsync(
+                        request,
+                        _generationCancellation.Token)
+                    .WithCancellation(
+                        _generationCancellation.Token))
+            {
+                assistantMessage.Content += token;
+
+                ScrollChatToBottom();
+            }
 
             _logger.LogInformation(
-                "Response generated in {Duration}.",
-                response.Duration);
+                "Streaming response completed.");
         }
         catch (OperationCanceledException)
         {
-            ResponseTextBox.Text =
-                "Generation cancelled.";
+            _logger.LogInformation(
+                "LLM generation was cancelled by the user.");
         }
         catch (Exception ex)
         {
@@ -160,15 +214,32 @@ public partial class MainWindow
                 ex,
                 "Error while generating response.");
 
-            ResponseTextBox.Text =
-                $"Error: {ex.Message}";
+            _messages.Add(
+                new ChatMessageViewModel(
+                    false,
+                    $"Error: {ex.Message}"));
         }
         finally
         {
-            SendButton.IsEnabled = true;
-            MessageTextBox.IsEnabled = true;
+            _generationCancellation?.Dispose();
+            _generationCancellation = null;
 
+            SendButton.Content = "Send";
+            SendButton.IsEnabled = true;
+
+            MessageTextBox.IsEnabled = true;
             MessageTextBox.Focus();
+
+            ScrollChatToBottom();
         }
+    }
+
+    private void ScrollChatToBottom()
+    {
+        Dispatcher.BeginInvoke(
+            new Action(() =>
+            {
+                ChatScrollViewer.ScrollToEnd();
+            }));
     }
 }

@@ -15,6 +15,12 @@ public interface ILocalModelRuntime
         int maxTokens,
         CancellationToken cancellationToken = default);
 
+    IAsyncEnumerable<string> GenerateStreamingAsync(
+        IReadOnlyList<ChatMessageRequest> messages,
+        float temperature,
+        int maxTokens,
+        CancellationToken cancellationToken = default);
+
     Task UnloadModelAsync(
         CancellationToken cancellationToken = default);
 

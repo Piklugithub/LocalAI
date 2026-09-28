@@ -3,11 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using LocalAI.Infrastructure.DependencyInjection;
-using LocalAI.Inference.DependencyInjection;
-
 using LocalAI.Application.Configuration;
 using LocalAI.Application.DependencyInjection;
+using LocalAI.Infrastructure.DependencyInjection;
+using LocalAI.Inference.DependencyInjection;
 
 namespace LocalAI.Desktop;
 
@@ -20,7 +19,8 @@ public partial class App : System.Windows.Application
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((context, config) =>
             {
-                config.SetBasePath(AppContext.BaseDirectory);
+                config.SetBasePath(
+                    AppContext.BaseDirectory);
 
                 config.AddJsonFile(
                     "appsettings.json",
@@ -41,10 +41,6 @@ public partial class App : System.Windows.Application
                 services.Configure<ApplicationOptions>(
                     context.Configuration.GetSection(
                         ApplicationOptions.SectionName));
-
-                services.AddLocalAIApplication();
-
-                services.AddSingleton<MainWindow>();
 
                 services.AddLocalAIApplication();
 
@@ -71,11 +67,16 @@ public partial class App : System.Windows.Application
     }
 
     protected override async void OnExit(
-        ExitEventArgs e)
+     ExitEventArgs e)
     {
-        await _host.StopAsync();
-
-        _host.Dispose();
+        try
+        {
+            await _host.StopAsync();
+        }
+        finally
+        {
+            _host.Dispose();
+        }
 
         base.OnExit(e);
     }
