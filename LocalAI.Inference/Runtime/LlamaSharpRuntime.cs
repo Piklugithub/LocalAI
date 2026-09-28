@@ -14,13 +14,11 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
     private LLamaWeights? _weights;
     private LLamaContext? _context;
     private InteractiveExecutor? _executor;
-    private ChatSession? _session;
 
     public bool IsLoaded =>
-        _weights is not null &&
-        _context is not null &&
-        _executor is not null &&
-        _session is not null;
+    _weights is not null &&
+    _context is not null &&
+    _executor is not null;
 
     public string? LoadedModelPath { get; private set; }
 
@@ -80,18 +78,6 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
 
             LoadedModelPath = modelPath;
 
-            // Create ONE persistent chat session.
-            var chatHistory = new ChatHistory();
-
-            _session = new ChatSession(
-                _executor,
-                chatHistory);
-
-            // Use the model's prompt template.
-            _session.WithHistoryTransform(
-                new PromptTemplateTransformer(
-                    _weights,
-                    withAssistant: true));
         }
         catch
         {
@@ -112,6 +98,12 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(messages);
 
+        if (!IsLoaded || _executor is null)
+        {
+            throw new InvalidOperationException(
+                "No model is currently loaded.");
+        }
+
         if (messages.Count == 0)
         {
             throw new ArgumentException(
@@ -119,20 +111,76 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
                 nameof(messages));
         }
 
-        var response = new System.Text.StringBuilder();
-
-        await foreach (var token in GenerateStreamingAsync(
-            messages,
-            temperature,
-            maxTokens,
-            cancellationToken))
+        if (maxTokens <= 0)
         {
-            response.Append(token);
+            throw new ArgumentOutOfRangeException(
+                nameof(maxTokens),
+                "Maximum tokens must be greater than zero.");
         }
 
-        return response
-            .ToString()
-            .Trim();
+        await _modelLock.WaitAsync(cancellationToken);
+
+        try
+        {
+            var lastMessage = messages[^1];
+
+            if (lastMessage.Role != ChatRole.User)
+            {
+                throw new InvalidOperationException(
+                    "The last inference message must be a user message.");
+            }
+
+            var chatHistory = new ChatHistory();
+
+            foreach (var message in messages
+                .Take(messages.Count - 1))
+            {
+                chatHistory.AddMessage(
+                    MapRole(message.Role),
+                    message.Content);
+            }
+
+            var session = new ChatSession(
+                _executor,
+                chatHistory);
+
+            session.WithHistoryTransform(
+            new PromptTemplateTransformer(
+                _weights!,
+                withAssistant: true));
+
+            var inferenceParams = new InferenceParams
+            {
+                MaxTokens = maxTokens,
+
+                SamplingPipeline = new DefaultSamplingPipeline
+                {
+                    Temperature = temperature
+                }
+            };
+
+            var response =
+                new System.Text.StringBuilder();
+
+            await foreach (
+                var token in session.ChatAsync(
+                    new ChatHistory.Message(
+                        AuthorRole.User,
+                        lastMessage.Content),
+                    inferenceParams)
+                .WithCancellation(cancellationToken))
+            {
+                response.Append(token);
+            }
+
+            return response
+                .ToString()
+                .Trim();
+        }
+        finally
+        {
+            _modelLock.Release();
+        }
     }
 
     public async IAsyncEnumerable<string> GenerateStreamingAsync(
@@ -164,22 +212,37 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
 
         try
         {
-            if (_session is null)
+            if (_executor is null || _weights is null)
             {
                 throw new InvalidOperationException(
-                    "No model session is currently loaded.");
+                    "No model is currently loaded.");
             }
 
-            var lastUserMessage = messages
-                .LastOrDefault(x =>
-                    x.Role == ChatRole.User);
+            var lastMessage = messages[^1];
 
-            if (lastUserMessage is null)
+            if (lastMessage.Role != ChatRole.User)
             {
-                throw new ArgumentException(
-                    "The conversation must contain a user message.",
-                    nameof(messages));
+                throw new InvalidOperationException(
+                    "The last inference message must be a user message.");
             }
+
+            var chatHistory = new ChatHistory();
+
+            foreach (var message in messages.Take(messages.Count - 1))
+            {
+                chatHistory.AddMessage(
+                    MapRole(message.Role),
+                    message.Content);
+            }
+
+            var session = new ChatSession(
+                _executor,
+                chatHistory);
+
+            session.WithHistoryTransform(
+                new PromptTemplateTransformer(
+                    _weights,
+                    withAssistant: true));
 
             var inferenceParams = new InferenceParams
             {
@@ -187,7 +250,7 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
 
                 AntiPrompts =
                 [
-                    "User:"
+                    "<|im_end|>"
                 ],
 
                 SamplingPipeline =
@@ -198,44 +261,19 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
             };
 
             await foreach (
-                var token in _session
+                var token in session
                     .ChatAsync(
                         new ChatHistory.Message(
                             AuthorRole.User,
-                            lastUserMessage.Content),
+                            lastMessage.Content),
                         inferenceParams,
                         cancellationToken)
                     .WithCancellation(
                         cancellationToken))
             {
-                var cleanedToken = token;
-
-                /*
-                 * LLamaSharp may include the anti-prompt
-                 * in the generated stream.
-                 *
-                 * We don't want "User:" appearing in the UI.
-                 */
-                const string stopMarker = "User:";
-
-                if (cleanedToken.Contains(
-                        stopMarker,
-                        StringComparison.OrdinalIgnoreCase))
+                if (!string.IsNullOrEmpty(token))
                 {
-                    var index = cleanedToken.IndexOf(
-                        stopMarker,
-                        StringComparison.OrdinalIgnoreCase);
-
-                    if (index >= 0)
-                    {
-                        cleanedToken =
-                            cleanedToken[..index];
-                    }
-                }
-
-                if (!string.IsNullOrEmpty(cleanedToken))
-                {
-                    yield return cleanedToken;
+                    yield return token;
                 }
             }
         }
@@ -263,8 +301,6 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
 
     private Task UnloadModelInternalAsync()
     {
-        _session = null;
-
         _executor = null;
 
         _context?.Dispose();

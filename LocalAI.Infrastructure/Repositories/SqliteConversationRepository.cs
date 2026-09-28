@@ -12,8 +12,8 @@ public sealed class SqliteConversationRepository(
     : IConversationRepository
 {
     public async Task<Conversation?> GetByIdAsync(
-        Guid conversationId,
-        CancellationToken cancellationToken = default)
+     Guid conversationId,
+     CancellationToken cancellationToken = default)
     {
         var record = await dbContext.Conversations
             .AsNoTracking()
@@ -22,9 +22,16 @@ public sealed class SqliteConversationRepository(
                 x => x.Id == conversationId,
                 cancellationToken);
 
-        return record is null
-            ? null
-            : MapToDomain(record);
+        if (record is null)
+        {
+            return null;
+        }
+
+        record.Messages = record.Messages
+            .OrderBy(x => x.CreatedAt)
+            .ToList();
+
+        return MapToDomain(record);
     }
 
     public async Task SaveAsync(
@@ -98,15 +105,15 @@ public sealed class SqliteConversationRepository(
     }
 
     public async Task<IReadOnlyList<Conversation>> GetAllAsync(
-        CancellationToken cancellationToken = default)
+    CancellationToken cancellationToken = default)
     {
         var records = await dbContext.Conversations
             .AsNoTracking()
             .Include(x => x.Messages)
-            .OrderByDescending(x => x.UpdatedAt)
             .ToListAsync(cancellationToken);
 
         return records
+            .OrderByDescending(x => x.UpdatedAt)
             .Select(MapToDomain)
             .ToList();
     }

@@ -6,20 +6,45 @@ namespace LocalAI.Application.Services;
 public sealed class ModelService(
     IModelRepository modelRepository) : IModelService
 {
+    private LocalModel? _selectedModel;
+
     public Task<IReadOnlyList<LocalModel>> GetAvailableModelsAsync(
         CancellationToken cancellationToken = default)
     {
-        return modelRepository.GetAllAsync(cancellationToken);
+        return modelRepository.GetAllAsync(
+            cancellationToken);
     }
 
     public async Task<LocalModel?> GetDefaultModelAsync(
-        CancellationToken cancellationToken = default)
+    CancellationToken cancellationToken = default)
     {
+        if (_selectedModel is not null)
+        {
+            return _selectedModel;
+        }
+
         var models = await modelRepository.GetAllAsync(
             cancellationToken);
 
-        return models.Count > 0
-            ? models[0]
-            : null;
+        if (models.Count == 0)
+        {
+            return null;
+        }
+
+        _selectedModel = models[0];
+
+        return _selectedModel;
+    }
+
+    public LocalModel? GetSelectedModel()
+    {
+        return _selectedModel;
+    }
+
+    public void SelectModel(LocalModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        _selectedModel = model;
     }
 }

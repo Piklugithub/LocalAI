@@ -168,42 +168,131 @@
         <!-- ============================= -->
 
         <Border Grid.Row="0"
-                Background="White"
-                BorderBrush="#E5E5E5"
-                BorderThickness="0,0,0,1">
+        Background="White"
+        BorderBrush="#E5E5E5"
+        BorderThickness="0,0,0,1">
 
             <Grid Margin="20,0">
 
                 <TextBlock Text="LocalAI"
-                           VerticalAlignment="Center"
-                           FontSize="22"
-                           FontWeight="SemiBold" />
+                   VerticalAlignment="Center"
+                   FontSize="22"
+                   FontWeight="SemiBold" />
 
-                <TextBlock Text="Offline AI"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"
-                           Foreground="#777777"
-                           FontSize="13" />
+                <StackPanel HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal">
+
+                    <Button x:Name="NewChatButton"
+                    Content="＋ New Chat"
+                    Click="NewChatButton_Click"
+                    Margin="0,0,20,0"
+                    Padding="14,7"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Foreground="#2563EB"
+                    Cursor="Hand"
+                    FontSize="13"
+                    FontWeight="SemiBold" />
+
+                    <TextBlock Text="Offline AI"
+                       VerticalAlignment="Center"
+                       Foreground="#777777"
+                       FontSize="13" />
+
+                </StackPanel>
 
             </Grid>
 
         </Border>
 
 
-        <!-- ============================= -->
-        <!-- Chat Area -->
-        <!-- ============================= -->
+        <Grid Grid.Row="1">
 
-        <ScrollViewer x:Name="ChatScrollViewer"
-                      Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-            <ItemsControl x:Name="MessagesItemsControl"
-                          Margin="20"
-                          ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}" />
 
-        </ScrollViewer>
+            <!-- ============================= -->
+            <!-- Conversation Sidebar -->
+            <!-- ============================= -->
+
+            <Border Grid.Column="0"
+            Background="White"
+            BorderBrush="#E5E5E5"
+            BorderThickness="0,0,1,0">
+
+                <Grid>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+
+                    <!-- Sidebar Header -->
+
+                    <TextBlock Grid.Row="0"
+                       Text="Conversations"
+                       Margin="18,18,18,12"
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Foreground="#333333" />
+
+
+                    <!-- Conversation List -->
+
+                    <ListBox x:Name="ConversationsListBox"
+                     Grid.Row="1"
+                     Margin="10,0,10,10"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     SelectionChanged="ConversationsListBox_SelectionChanged">
+
+                        <ListBox.ItemTemplate>
+
+                            <DataTemplate>
+
+                                <Border Padding="12,10"
+                                Margin="0,2"
+                                CornerRadius="8">
+
+                                    <TextBlock Text="{Binding Title}"
+                                       FontSize="14"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="#333333" />
+
+                                </Border>
+
+                            </DataTemplate>
+
+                        </ListBox.ItemTemplate>
+
+                    </ListBox>
+
+                </Grid>
+
+            </Border>
+
+
+            <!-- ============================= -->
+            <!-- Chat Area -->
+            <!-- ============================= -->
+
+            <ScrollViewer x:Name="ChatScrollViewer"
+                  Grid.Column="1"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+
+                <ItemsControl x:Name="MessagesItemsControl"
+                      Margin="20"
+                      ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}" />
+
+            </ScrollViewer>
+
+        </Grid>
 
 
         <!-- ============================= -->

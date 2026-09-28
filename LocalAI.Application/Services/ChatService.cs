@@ -4,6 +4,7 @@ using LocalAI.Application.Models;
 using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace LocalAI.Application.Services;
 
@@ -11,7 +12,8 @@ public sealed class ChatService(
     IInferenceEngine inferenceEngine,
     IConversationRepository conversationRepository,
     IModelService modelService,
-    IOptions<InferenceOptions> inferenceOptions) : IChatService
+    IOptions<InferenceOptions> inferenceOptions,
+    ILogger<ChatService> logger) : IChatService
 {
     public async Task<ChatResponse> SendMessageAsync(
         ChatRequest request,
@@ -26,14 +28,18 @@ public sealed class ChatService(
                 nameof(request));
         }
 
-        var model = await modelService.GetDefaultModelAsync(
-            cancellationToken);
+        var model = modelService.GetSelectedModel();
+
+        if (model is null)
+        {
+            model = await modelService.GetDefaultModelAsync(
+                cancellationToken);
+        }
 
         if (model is null)
         {
             throw new InvalidOperationException(
-                "No local AI model is available. " +
-                "Add a GGUF model to the models directory.");
+                "No local model is available.");
         }
 
         var options = inferenceOptions.Value;
@@ -52,6 +58,20 @@ public sealed class ChatService(
                 Content = message.Content
             })
             .ToList();
+
+        logger.LogDebug(
+        "Building inference context for conversation {ConversationId}. " +
+        "Message count: {MessageCount}.",
+        request.Conversation.Id,
+        messages.Count);
+
+        foreach (var message in messages)
+        {
+            logger.LogDebug(
+                "Inference message: {Role} - {Content}",
+                message.Role,
+                message.Content);
+        }
 
         var inferenceRequest = new InferenceRequest
         {
@@ -101,14 +121,18 @@ public sealed class ChatService(
                 nameof(request));
         }
 
-        var model = await modelService.GetDefaultModelAsync(
-            cancellationToken);
+        var model = modelService.GetSelectedModel();
+
+        if (model is null)
+        {
+            model = await modelService.GetDefaultModelAsync(
+                cancellationToken);
+        }
 
         if (model is null)
         {
             throw new InvalidOperationException(
-                "No local AI model is available. " +
-                "Add a GGUF model to the models directory.");
+                "No local model is available.");
         }
 
         var options = inferenceOptions.Value;

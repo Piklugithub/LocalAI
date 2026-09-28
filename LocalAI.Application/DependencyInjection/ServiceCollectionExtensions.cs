@@ -13,6 +13,10 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IModelService, ModelService>();
 
+        services.AddScoped<
+       IConversationService,
+       ConversationService>();
+
         return services;
     }
 }

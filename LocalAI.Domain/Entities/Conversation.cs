@@ -70,5 +70,27 @@ namespace LocalAI.Domain.Entities
                 UpdatedAt = updatedAt
             };
         }
+
+        public void GenerateTitleFromFirstMessage(string message)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(message);
+
+            if (Title != "New Conversation")
+            {
+                return;
+            }
+
+            var title = message.Trim();
+
+            const int maxTitleLength = 50;
+
+            if (title.Length > maxTitleLength)
+            {
+                title = title[..maxTitleLength].TrimEnd() + "...";
+            }
+
+            Title = title;
+            UpdatedAt = DateTimeOffset.UtcNow;
+        }
     }
 }

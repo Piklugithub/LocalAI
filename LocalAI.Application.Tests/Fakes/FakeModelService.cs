@@ -12,7 +12,7 @@ public sealed class FakeModelService : IModelService
         ModelFormat.Gguf,
         ModelCapability.Chat,
         1024);
-
+    private LocalModel? _selectedModel;
     public Task<IReadOnlyList<LocalModel>> GetAvailableModelsAsync(
         CancellationToken cancellationToken = default)
     {
@@ -25,5 +25,17 @@ public sealed class FakeModelService : IModelService
         CancellationToken cancellationToken = default)
     {
         return Task.FromResult<LocalModel?>(_model);
+    }
+
+    public LocalModel? GetSelectedModel()
+    {
+        return _selectedModel;
+    }
+
+    public void SelectModel(LocalModel model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        _selectedModel = model;
     }
 }

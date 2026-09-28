@@ -9,4 +9,8 @@ public interface IModelService
 
     Task<LocalModel?> GetDefaultModelAsync(
         CancellationToken cancellationToken = default);
+
+    LocalModel? GetSelectedModel();
+
+    void SelectModel(LocalModel model);
 }

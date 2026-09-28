@@ -5,7 +5,7 @@ using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
 using LocalAI.Application.Configuration;
 using Microsoft.Extensions.Options;
-
+using Microsoft.Extensions.Logging.Abstractions;
 namespace LocalAI.Application.Tests;
 
 public class ChatServiceTests
@@ -27,7 +27,8 @@ public class ChatServiceTests
             inferenceEngine,
             repository,
             modelService,
-            inferenceOptions);
+            inferenceOptions,
+            NullLogger<ChatService>.Instance);
 
         var conversation = new Conversation(
             "Test Conversation");
