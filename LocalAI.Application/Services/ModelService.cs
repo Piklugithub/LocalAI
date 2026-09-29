@@ -1,10 +1,13 @@
 ﻿using LocalAI.Application.Abstractions;
+using LocalAI.Application.Configuration;
+using LocalAI.Application.Models;
 using LocalAI.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace LocalAI.Application.Services;
 
 public sealed class ModelService(
-    IModelRepository modelRepository) : IModelService
+    IModelRepository modelRepository, IInferenceEngine inferenceEngine, IOptions<InferenceOptions> inferenceOptions) : IModelService
 {
     private LocalModel? _selectedModel;
 
@@ -46,5 +49,20 @@ public sealed class ModelService(
         ArgumentNullException.ThrowIfNull(model);
 
         _selectedModel = model;
+    }
+
+    public async Task LoadSelectedModelAsync(
+    CancellationToken cancellationToken = default)
+    {
+        if (_selectedModel is null)
+        {
+            throw new InvalidOperationException(
+                "No model has been selected.");
+        }
+
+        await inferenceEngine.LoadModelAsync(
+            _selectedModel.FilePath,
+            inferenceOptions.Value.ContextSize,
+            cancellationToken);
     }
 }

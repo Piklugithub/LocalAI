@@ -8,6 +8,7 @@ namespace LocalAI.Inference;
 public sealed class LlamaInferenceEngine(
     ILocalModelRuntime runtime) : IInferenceEngine
 {
+
     public async Task<InferenceResponse> GenerateAsync(
         InferenceRequest request,
         CancellationToken cancellationToken = default)
@@ -52,6 +53,19 @@ public sealed class LlamaInferenceEngine(
         };
     }
 
+    public Task LoadModelAsync(
+    string modelPath,
+    int contextSize,
+    CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
+
+        return runtime.LoadModelAsync(
+            modelPath,
+            contextSize,
+            cancellationToken);
+    }
+
     public async IAsyncEnumerable<string> GenerateStreamingAsync(
     InferenceRequest request,
     [System.Runtime.CompilerServices.EnumeratorCancellation]
@@ -89,4 +103,5 @@ public sealed class LlamaInferenceEngine(
             yield return token;
         }
     }
+
 }

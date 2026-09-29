@@ -33,4 +33,12 @@ public sealed class FakeInferenceEngine : IInferenceEngine
 
         await Task.CompletedTask;
     }
+
+    public Task LoadModelAsync(
+    string modelPath,
+    int contextSize,
+    CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
 }

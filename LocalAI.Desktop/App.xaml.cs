@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Threading;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -56,18 +57,64 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(
         StartupEventArgs e)
     {
-        await _host.StartAsync();
-
-        var mainWindow = _host.Services
-            .GetRequiredService<MainWindow>();
-
-        mainWindow.Show();
-
         base.OnStartup(e);
+
+        var splashWindow =
+            new SplashWindow();
+
+        splashWindow.Show();
+
+        // Give WPF a chance to render the splash screen.
+        await Dispatcher.InvokeAsync(
+            () => { },
+            DispatcherPriority.Render);
+
+        try
+        {
+            splashWindow.SetStatus(
+                "Starting application...");
+
+            await _host.StartAsync();
+
+            splashWindow.SetStatus(
+                "Preparing LocalAI...");
+
+            var mainWindow =
+                _host.Services
+                    .GetRequiredService<MainWindow>();
+
+            await mainWindow.InitializeAsync(
+                splashWindow);
+
+            splashWindow.SetStatus(
+                "Ready");
+
+            // Small delay so the user can see "Ready".
+            await Task.Delay(
+                300);
+
+            MainWindow = mainWindow;
+
+            splashWindow.Close();
+
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            splashWindow.Close();
+
+            MessageBox.Show(
+                $"LocalAI could not start.\n\n{ex.Message}",
+                "LocalAI Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+
+            Shutdown();
+        }
     }
 
     protected override async void OnExit(
-     ExitEventArgs e)
+        ExitEventArgs e)
     {
         try
         {

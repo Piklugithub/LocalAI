@@ -21,4 +21,14 @@ public sealed class NotConfiguredInferenceEngine
         throw new InvalidOperationException(
             "The local inference engine has not been configured yet.");
     }
+
+    public Task LoadModelAsync(
+    string modelPath,
+    int contextSize,
+    CancellationToken cancellationToken = default)
+    {
+        throw new InvalidOperationException(
+            "The local inference engine has not been configured yet.");
+    }
+
 }

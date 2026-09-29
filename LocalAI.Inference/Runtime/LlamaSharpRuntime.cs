@@ -14,7 +14,6 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
     private LLamaWeights? _weights;
     private LLamaContext? _context;
     private InteractiveExecutor? _executor;
-
     public bool IsLoaded =>
     _weights is not null &&
     _context is not null &&
@@ -250,13 +249,19 @@ public sealed class LlamaSharpRuntime : ILocalModelRuntime, IAsyncDisposable
 
                 AntiPrompts =
                 [
-                    "<|im_end|>"
+                    "<|im_end|>",
+                    "<|im_start|>"
                 ],
 
                 SamplingPipeline =
                     new DefaultSamplingPipeline
                     {
-                        Temperature = temperature
+                        Temperature = temperature,
+                        TopP = 0.9f,
+                        TopK = 40,
+                        RepeatPenalty = 1.1f,
+                        FrequencyPenalty = 0.1f,
+                        PresencePenalty = 0.1f
                     }
             };
 

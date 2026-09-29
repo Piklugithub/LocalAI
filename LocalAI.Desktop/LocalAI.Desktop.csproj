@@ -6,10 +6,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+	<ApplicationIcon>Assets\LocalAI.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <None Remove="appsettings.json" />
+    <None Remove="Assets\LocalAI.ico" />
+    <None Remove="Assets\LocalAI.png" />
+    <None Remove="Assets\LocalAI.png.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,6 +38,15 @@
     <ProjectReference Include="..\LocalAI.Application\LocalAI.Application.csproj" />
     <ProjectReference Include="..\LocalAI.Inference\LocalAI.Inference.csproj" />
     <ProjectReference Include="..\LocalAI.Infrastructure\LocalAI.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\LocalAI.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\LocalAI.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>

@@ -21,13 +21,16 @@ public partial class MainWindow
 
     private readonly ObservableCollection<Conversation>
         _conversations = [];
-
+    private readonly ObservableCollection<LocalModel>
+    _models = [];
     private readonly ObservableCollection<ChatMessageViewModel>
         _messages = [];
 
     private Conversation? _conversation;
 
     private bool _isLoadingConversation;
+
+    private bool _isInitializing;
 
     private CancellationTokenSource? _generationCancellation;
 
@@ -47,21 +50,198 @@ public partial class MainWindow
 
         ConversationsListBox.ItemsSource =
             _conversations;
-
+        ModelComboBox.ItemsSource = _models;
         Title = applicationOptions.Value.Name;
 
         _logger.LogInformation(
-            "LocalAI desktop application started.");
-
-        Loaded += MainWindow_Loaded;
+            "LocalAI desktop application started.");        
     }
 
-    private async void MainWindow_Loaded(
-        object sender,
-        RoutedEventArgs e)
+    //private async void MainWindow_Loaded(
+    //    object sender,
+    //    RoutedEventArgs e)
+    //{
+    //    _isInitializing = true;
+    //    try
+    //    {
+    //        var models =
+    //            await _modelService
+    //                .GetAvailableModelsAsync();
+
+    //        _logger.LogInformation(
+    //            "Application discovered {ModelCount} model(s).",
+    //            models.Count);
+    //        _models.Clear();
+
+    //        foreach (var model in models)
+    //        {
+    //            _models.Add(model);
+    //        }
+    //        if (models.Count == 0)
+    //        {
+    //            ModelStatusTextBlock.Text = "No model";
+
+    //            _messages.Add(
+    //                new ChatMessageViewModel(
+    //                    false,
+    //                    "No local GGUF model was found."));
+
+    //            SendButton.IsEnabled = false;
+    //            return;
+    //        }
+    //        var defaultModel =
+    //        await _modelService
+    //            .GetDefaultModelAsync();
+
+    //        if (defaultModel is not null)
+    //        {
+    //            ModelComboBox.SelectedItem =
+    //                defaultModel;
+
+    //            try
+    //            {
+    //                SetModelStatus("Loading...");
+
+    //                ModelComboBox.IsEnabled = false;
+    //                SendButton.IsEnabled = false;
+    //                MessageTextBox.IsEnabled = false;
+
+    //                _modelService.SelectModel(
+    //                    defaultModel);
+
+    //                await _modelService.LoadSelectedModelAsync();
+
+    //                SetModelStatus("Ready");
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                SetModelStatus("Load failed");
+
+    //                _logger.LogError(
+    //                    ex,
+    //                    "Failed to load default model: {ModelName}.",
+    //                    defaultModel.Name);
+
+    //                SendButton.IsEnabled = false;
+    //            }
+    //            finally
+    //            {
+    //                ModelComboBox.IsEnabled = true;
+
+    //                var modelLoaded =
+    //                    _modelService.GetSelectedModel() is not null;
+
+    //                SendButton.IsEnabled = modelLoaded;
+    //                MessageTextBox.IsEnabled = modelLoaded;
+
+    //                if (modelLoaded)
+    //                {
+    //                    MessageTextBox.Focus();
+    //                }
+    //            }
+    //        }
+    //        using var scope =
+    //            _scopeFactory.CreateScope();
+
+    //        var conversationService =
+    //            scope.ServiceProvider
+    //                .GetRequiredService<IConversationService>();
+
+    //        var conversations =
+    //            await conversationService
+    //                .GetConversationsAsync();
+
+    //        _logger.LogInformation(
+    //            "Application loaded {ConversationCount} conversation(s).",
+    //            conversations.Count);
+
+    //        // Populate sidebar.
+    //        _conversations.Clear();
+
+    //        foreach (var conversation in conversations)
+    //        {
+    //            _conversations.Add(conversation);
+    //        }
+
+    //        if (conversations.Count > 0)
+    //        {
+    //            var latestConversationId =
+    //                conversations[0].Id;
+
+    //            _isLoadingConversation = true;
+
+    //            try
+    //            {
+    //                _conversation =
+    //                    await conversationService
+    //                        .GetConversationAsync(
+    //                            latestConversationId);
+
+    //                if (_conversation is not null)
+    //                {
+    //                    LoadConversationMessages(
+    //                        _conversation);
+
+    //                    ConversationsListBox.SelectedItem =
+    //                        conversations.FirstOrDefault(
+    //                            x =>
+    //                                x.Id ==
+    //                                _conversation.Id);
+
+    //                    _logger.LogInformation(
+    //                        "Restored conversation {ConversationId}: {ConversationTitle}.",
+    //                        _conversation.Id,
+    //                        _conversation.Title);
+    //                }
+    //            }
+    //            finally
+    //            {
+    //                _isLoadingConversation = false;
+    //                _isInitializing = false;
+    //            }
+    //        }
+    //        else
+    //        {
+    //            _conversation =
+    //                new Conversation(
+    //                    "New Conversation");
+
+    //            _logger.LogInformation(
+    //                "No existing conversations found. " +
+    //                "Created a new conversation.");
+    //        }
+
+    //        _logger.LogInformation(
+    //            "Model ready: {ModelName}.",
+    //            models[0].Name);
+
+    //        ScrollChatToBottom();
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(
+    //            ex,
+    //            "Failed to initialize LocalAI.");
+
+    //        _messages.Add(
+    //            new ChatMessageViewModel(
+    //                false,
+    //                $"Initialization error: {ex.Message}"));
+
+    //        SendButton.IsEnabled = false;
+    //    }
+    //}
+
+    public async Task InitializeAsync(
+    SplashWindow splashWindow)
     {
+        _isInitializing = true;
+
         try
         {
+            splashWindow.SetStatus(
+                "Discovering local models...");
+
             var models =
                 await _modelService
                     .GetAvailableModelsAsync();
@@ -70,8 +250,17 @@ public partial class MainWindow
                 "Application discovered {ModelCount} model(s).",
                 models.Count);
 
+            _models.Clear();
+
+            foreach (var model in models)
+            {
+                _models.Add(model);
+            }
+
             if (models.Count == 0)
             {
+                ModelStatusTextBlock.Text = "No model";
+
                 _messages.Add(
                     new ChatMessageViewModel(
                         false,
@@ -79,8 +268,45 @@ public partial class MainWindow
 
                 SendButton.IsEnabled = false;
 
+                splashWindow.SetStatus(
+                    "No local model found.");
+
                 return;
             }
+
+            var defaultModel =
+                await _modelService
+                    .GetDefaultModelAsync();
+
+            if (defaultModel is not null)
+            {
+                ModelComboBox.SelectedItem =
+                    defaultModel;
+
+                ModelComboBox.IsEnabled = false;
+                SendButton.IsEnabled = false;
+                MessageTextBox.IsEnabled = false;
+
+                SetModelStatus("Loading...");
+
+                splashWindow.SetStatus(
+                    $"Loading {defaultModel.Name}...");
+
+                _modelService.SelectModel(
+                    defaultModel);
+
+                await _modelService
+                    .LoadSelectedModelAsync();
+
+                SetModelStatus("Ready");
+
+                _logger.LogInformation(
+                    "Default model loaded successfully: {ModelName}.",
+                    defaultModel.Name);
+            }
+
+            splashWindow.SetStatus(
+                "Loading conversations...");
 
             using var scope =
                 _scopeFactory.CreateScope();
@@ -97,7 +323,6 @@ public partial class MainWindow
                 "Application loaded {ConversationCount} conversation(s).",
                 conversations.Count);
 
-            // Populate sidebar.
             _conversations.Clear();
 
             foreach (var conversation in conversations)
@@ -152,9 +377,11 @@ public partial class MainWindow
                     "Created a new conversation.");
             }
 
+            splashWindow.SetStatus(
+                "Ready");
+
             _logger.LogInformation(
-                "Model ready: {ModelName}.",
-                models[0].Name);
+                "LocalAI initialization completed.");
 
             ScrollChatToBottom();
         }
@@ -164,18 +391,38 @@ public partial class MainWindow
                 ex,
                 "Failed to initialize LocalAI.");
 
+            splashWindow.SetStatus(
+                "Initialization failed.");
+
             _messages.Add(
                 new ChatMessageViewModel(
                     false,
                     $"Initialization error: {ex.Message}"));
 
             SendButton.IsEnabled = false;
+
+            throw;
+        }
+        finally
+        {
+            _isInitializing = false;
+
+            ModelComboBox.IsEnabled = true;
+
+            var modelLoaded =
+                _modelService.GetSelectedModel() is not null;
+
+            SendButton.IsEnabled =
+                modelLoaded;
+
+            MessageTextBox.IsEnabled =
+                modelLoaded;
         }
     }
 
     private async void ConversationsListBox_SelectionChanged(
-        object sender,
-        System.Windows.Controls.SelectionChangedEventArgs e)
+    object sender,
+    System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (_isLoadingConversation)
         {
@@ -187,6 +434,8 @@ public partial class MainWindow
         {
             return;
         }
+
+        _generationCancellation?.Cancel();
 
         await LoadConversationAsync(
             selectedConversation.Id);
@@ -294,7 +543,8 @@ public partial class MainWindow
 
             return;
         }
-
+        var conversation =
+            _conversation;
         var message =
             MessageTextBox.Text.Trim();
 
@@ -308,7 +558,7 @@ public partial class MainWindow
 
         try
         {
-            _conversation.GenerateTitleFromFirstMessage(message);
+            conversation.GenerateTitleFromFirstMessage(message);
             // Add user message to UI.
             _messages.Add(
                 new ChatMessageViewModel(
@@ -328,7 +578,7 @@ public partial class MainWindow
             MessageTextBox.Clear();
 
             SendButton.IsEnabled = true;
-            SendButton.Content = "Cancel";
+            SendButton.Content = "■";
 
             MessageTextBox.IsEnabled = false;
 
@@ -343,7 +593,7 @@ public partial class MainWindow
 
             var request = new ChatRequest
             {
-                Conversation = _conversation,
+                Conversation = conversation,
                 UserMessage = message
             };
 
@@ -360,13 +610,13 @@ public partial class MainWindow
                 ScrollChatToBottom();
             }
 
-            AddConversationToSidebarIfNeeded();
+            if (!_generationCancellation.Token.IsCancellationRequested)
+            {
+                AddConversationToSidebarIfNeeded();
 
-            _logger.LogInformation(
-                "Streaming response completed.");
-
-            _logger.LogInformation(
-                "Streaming response completed.");
+                _logger.LogInformation(
+                    "Streaming response completed.");
+            }
         }
         catch (OperationCanceledException)
         {
@@ -390,7 +640,7 @@ public partial class MainWindow
 
             _generationCancellation = null;
 
-            SendButton.Content = "Send";
+            SendButton.Content = "➤";
             SendButton.IsEnabled = true;
 
             MessageTextBox.IsEnabled = true;
@@ -481,5 +731,92 @@ public partial class MainWindow
         _logger.LogInformation(
             "Started a new conversation {ConversationId}.",
             _conversation.Id);
+    }
+
+    private void SetModelStatus(
+    string status)
+    {
+        ModelStatusTextBlock.Text = status;
+    }
+    private async void ModelComboBox_SelectionChanged(
+    object sender,
+    System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (ModelComboBox.SelectedItem
+            is not LocalModel selectedModel)
+        {
+            return;
+        }
+
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        _generationCancellation?.Cancel();
+
+        try
+        {
+            ModelComboBox.IsEnabled = false;
+            SendButton.IsEnabled = false;
+            MessageTextBox.IsEnabled = false;
+
+            SetModelStatus("Loading...");
+
+            _modelService.SelectModel(
+                selectedModel);
+
+            _logger.LogInformation(
+                "Loading selected model: {ModelName}.",
+                selectedModel.Name);
+
+            await _modelService.LoadSelectedModelAsync();
+
+            SetModelStatus("Ready");
+
+            _logger.LogInformation(
+                "Selected model loaded successfully: {ModelName}.",
+                selectedModel.Name);
+        }
+        catch (OperationCanceledException)
+        {
+            SetModelStatus("Cancelled");
+
+            _logger.LogInformation(
+                "Model loading was cancelled.");
+        }
+        catch (Exception ex)
+        {
+            SetModelStatus("Load failed");
+
+            _logger.LogError(
+                ex,
+                "Failed to load selected model: {ModelName}.",
+                selectedModel.Name);
+
+            MessageBox.Show(
+                $"Failed to load model:\n\n{ex.Message}",
+                "Model Loading Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            ModelComboBox.IsEnabled = true;
+
+            var modelLoaded =
+                _modelService.GetSelectedModel() is not null;
+
+            SendButton.IsEnabled =
+                modelLoaded;
+
+            MessageTextBox.IsEnabled =
+                modelLoaded;
+
+            if (modelLoaded)
+            {
+                MessageTextBox.Focus();
+            }
+        }
     }
 }

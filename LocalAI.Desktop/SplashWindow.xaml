@@ -1,0 +1,99 @@
+﻿<Window x:Class="LocalAI.Desktop.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="520"
+        Height="360"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False">
+
+    <Border Background="White"
+            CornerRadius="18"
+            BorderBrush="#E5E7EB"
+            BorderThickness="1">
+
+        <Grid>
+
+            <!-- Background decoration -->
+            <Ellipse Width="360"
+                     Height="360"
+                     HorizontalAlignment="Right"
+                     VerticalAlignment="Bottom"
+                     Margin="0,0,-170,-170"
+                     Opacity="0.08">
+                <Ellipse.Fill>
+                    <LinearGradientBrush StartPoint="0,0"
+                                         EndPoint="1,1">
+                        <GradientStop Color="#2563EB"
+                                      Offset="0" />
+                        <GradientStop Color="#06B6D4"
+                                      Offset="1" />
+                    </LinearGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+
+                <!-- Logo -->
+                <Image Source="/LocalAI.Desktop;component/Assets/LocalAI.png"
+                       Width="82"
+                       Height="82"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,14" />
+
+                <!-- Application name -->
+                <TextBlock Text="LocalAI"
+                           HorizontalAlignment="Center"
+                           FontSize="30"
+                           FontWeight="SemiBold"
+                           Foreground="#111827" />
+
+                <TextBlock Text="Offline AI for Everyone"
+                           HorizontalAlignment="Center"
+                           Margin="0,4,0,24"
+                           FontSize="13"
+                           Foreground="#6B7280" />
+
+                <!-- Loading message -->
+                <TextBlock x:Name="StatusTextBlock"
+                           Text="Starting LocalAI..."
+                           HorizontalAlignment="Center"
+                           FontSize="13"
+                           Foreground="#4B5563"
+                           Margin="0,0,0,12" />
+
+                <!-- Loading animation -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center">
+
+                    <Ellipse x:Name="Dot1"
+                         Width="7"
+                         Height="7"
+                         Margin="4"
+                         Fill="#2563EB" />
+
+                    <Ellipse x:Name="Dot2"
+                         Width="7"
+                         Height="7"
+                         Margin="4"
+                         Fill="#2563EB" />
+
+                    <Ellipse x:Name="Dot3"
+                         Width="7"
+                         Height="7"
+                         Margin="4"
+                         Fill="#2563EB" />
+
+                </StackPanel>
+
+            </StackPanel>
+
+        </Grid>
+
+    </Border>
+
+</Window>

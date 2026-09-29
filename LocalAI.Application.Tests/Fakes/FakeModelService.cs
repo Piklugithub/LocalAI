@@ -38,4 +38,10 @@ public sealed class FakeModelService : IModelService
 
         _selectedModel = model;
     }
+
+    public Task LoadSelectedModelAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
 }

@@ -12,7 +12,7 @@ public sealed class InferenceRequest
 
     public float Temperature { get; init; } = 0.7f;
 
-    public int MaxTokens { get; init; } = 1024;
+    public int MaxTokens { get; init; } = 512;
 
     public int ContextSize { get; init; } = 8192;
 }
