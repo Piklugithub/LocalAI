@@ -30,6 +30,8 @@ public static class ServiceCollectionExtensions
                     $"Data Source={databasePath}");
             });
 
+        services.AddScoped<DatabaseInitializer>();
+
         services.AddScoped<
             IConversationRepository,
             SqliteConversationRepository>();

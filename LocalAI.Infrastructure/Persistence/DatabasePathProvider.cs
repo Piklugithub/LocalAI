@@ -10,11 +10,19 @@ public sealed class DatabasePathProvider(
     {
         var dataDirectory = options.Value.DataDirectory;
 
-        var fullDataDirectory = Path.IsPathRooted(dataDirectory)
-            ? dataDirectory
-            : Path.Combine(
-                AppContext.BaseDirectory,
-                dataDirectory);
+        var localAppData =
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.LocalApplicationData);
+
+        var applicationDirectory =
+            Path.Combine(localAppData, "LocalAI");
+
+        var fullDataDirectory =
+            Path.IsPathRooted(dataDirectory)
+                ? dataDirectory
+                : Path.Combine(
+                    applicationDirectory,
+                    dataDirectory);
 
         Directory.CreateDirectory(fullDataDirectory);
 

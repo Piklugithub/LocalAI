@@ -1,13 +1,14 @@
-﻿using System.Windows;
-using System.Windows.Threading;
+﻿using LocalAI.Application.Configuration;
+using LocalAI.Application.DependencyInjection;
+using LocalAI.Inference.DependencyInjection;
+using LocalAI.Infrastructure.DependencyInjection;
+using LocalAI.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using LocalAI.Application.Configuration;
-using LocalAI.Application.DependencyInjection;
-using LocalAI.Infrastructure.DependencyInjection;
-using LocalAI.Inference.DependencyInjection;
+using System.Windows;
+using System.Windows.Threading;
 
 namespace LocalAI.Desktop;
 
@@ -55,61 +56,54 @@ public partial class App : System.Windows.Application
     }
 
     protected override async void OnStartup(
-        StartupEventArgs e)
+    StartupEventArgs e)
     {
         base.OnStartup(e);
 
-        var splashWindow =
-            new SplashWindow();
-
-        splashWindow.Show();
-
-        // Give WPF a chance to render the splash screen.
-        await Dispatcher.InvokeAsync(
-            () => { },
-            DispatcherPriority.Render);
-
         try
         {
-            splashWindow.SetStatus(
-                "Starting application...");
-
             await _host.StartAsync();
 
-            splashWindow.SetStatus(
-                "Preparing LocalAI...");
+            // Initialize database first.
+            using (var scope = _host.Services.CreateScope())
+            {
+                var databaseInitializer =
+                    scope.ServiceProvider
+                        .GetRequiredService<DatabaseInitializer>();
 
-            var mainWindow =
-                _host.Services
-                    .GetRequiredService<MainWindow>();
+                await databaseInitializer.InitializeAsync();
+            }
 
+            // Show splash screen while LocalAI initializes.
+            var splashWindow = new SplashWindow();
+
+            splashWindow.Show();
+
+            // Create the main window.
+            var mainWindow = _host.Services
+                .GetRequiredService<MainWindow>();
+
+            // Perform model discovery, model loading,
+            // conversation loading, etc.
             await mainWindow.InitializeAsync(
                 splashWindow);
 
-            splashWindow.SetStatus(
-                "Ready");
-
-            // Small delay so the user can see "Ready".
-            await Task.Delay(
-                300);
-
-            MainWindow = mainWindow;
-
+            // Initialization completed.
             splashWindow.Close();
 
             mainWindow.Show();
+
+            MainWindow = mainWindow;
         }
         catch (Exception ex)
         {
-            splashWindow.Close();
-
             MessageBox.Show(
                 $"LocalAI could not start.\n\n{ex.Message}",
                 "LocalAI Startup Error",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
 
-            Shutdown();
+            Shutdown(-1);
         }
     }
 

@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
 	<ApplicationIcon>Assets\LocalAI.ico</ApplicationIcon>
+
+	  <EnableConfigurationBindingGenerator>false</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
   <ItemGroup>
