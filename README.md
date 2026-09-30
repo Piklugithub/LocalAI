@@ -69,3 +69,31 @@ Create:
 
 ```text
 %LOCALAPPDATA%\LocalAI\models
+
+## Code Signing Policy
+
+LocalAI is an open-source Windows desktop application distributed through
+GitHub Releases.
+
+**Free code signing provided by SignPath.io, certificate by SignPath Foundation.**
+
+### Code Signing Roles
+
+LocalAI is currently maintained by the project owner.
+
+- **Committers and reviewers:** LocalAI project maintainer
+- **Approvers:** LocalAI project maintainer
+
+All release binaries submitted for signing are built from the LocalAI
+source repository using the project's automated GitHub Actions build process.
+
+### Privacy Policy
+
+LocalAI is designed as an offline-first application.
+
+For the current privacy policy, see
+[PRIVACY.md](PRIVACY.md).
+
+LocalAI does not transfer user conversations, prompts, AI-generated responses,
+or locally stored conversation data to external networked systems for
+inference unless specifically requested by the user or operator.
