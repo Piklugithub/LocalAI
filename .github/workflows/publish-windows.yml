@@ -42,7 +42,7 @@ jobs:
       - name: Publish Windows x64
         run: >
           dotnet publish
-          src/LocalAI.Desktop/LocalAI.Desktop.csproj
+          LocalAI.Desktop/LocalAI.Desktop.csproj
           --configuration Release
           --runtime win-x64
           --self-contained true
