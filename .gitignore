@@ -1,77 +1,50 @@
-# =========================
 # Visual Studio
-# =========================
-
 .vs/
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
 
-# =========================
-# .NET Build Output
-# =========================
+# Build output
+**/bin/
+**/obj/
 
-bin/
-obj/
-
-# =========================
-# Test Results
-# =========================
-
+# Test results
 TestResults/
 *.trx
 
-# =========================
 # Coverage
-# =========================
-
 coverage/
 *.coverage
 *.coveragexml
 
-# =========================
-# Rider / ReSharper
-# =========================
+# NuGet
+*.nupkg
+*.snupkg
 
-.idea/
-_ReSharper*/
-*.DotSettings.user
+# Publish output
+publish/
+Publish/
+artifacts/
 
-# =========================
-# OS Files
-# =========================
-
-.DS_Store
-Thumbs.db
-
-# =========================
-# Logs
-# =========================
-
-logs/
-*.log
-
-# =========================
-# Local Application Data
-# =========================
-
+# Local application data
 data/
 *.db
 *.db-shm
 *.db-wal
 
-# =========================
-# Local AI Models
-# =========================
+# Local AI models
 models/*
 !models/.gitkeep
-models/*.gguf
-models/*.bin
-models/*.safetensors
 
-# =========================
-# Local configuration
-# =========================
+# Local logs
+logs/
+*.log
 
-appsettings.Local.json
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
