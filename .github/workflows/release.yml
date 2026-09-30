@@ -1,0 +1,68 @@
+name: Release LocalAI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release Windows
+    runs-on: windows-latest
+
+    environment:
+      name: Windows Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore dependencies
+        run: dotnet restore LocalAI.sln
+
+      - name: Build solution
+        run: dotnet build LocalAI.sln --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test LocalAI.sln --configuration Release --no-build
+
+      - name: Publish Windows x64
+        run: >
+          dotnet publish
+          LocalAI.Desktop/LocalAI.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output "${{ github.workspace }}\publish\win-x64"
+
+      - name: Create ZIP package
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path "${{ github.workspace }}\publish\win-x64\*" `
+            -DestinationPath "${{ github.workspace }}\LocalAI-win-x64.zip"
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "$env:VERSION" `
+            "${{ github.workspace }}\LocalAI-win-x64.zip" `
+            --title "LocalAI $env:VERSION" `
+            --generate-notes `
+            --latest
