@@ -1,0 +1,63 @@
+name: Publish Windows
+
+on:
+  workflow_run:
+    workflows:
+      - LocalAI CI
+    types:
+      - completed
+    branches:
+      - master
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-windows:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    runs-on: windows-latest
+
+    environment:
+      name: Windows Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore LocalAI.sln
+
+      - name: Publish Windows x64
+        run: >
+          dotnet publish
+          src/LocalAI.Desktop/LocalAI.Desktop.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          --output "${{ github.workspace }}\publish\win-x64"
+
+      - name: Create ZIP package
+        shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path "${{ github.workspace }}\publish\win-x64\*" `
+            -DestinationPath "${{ github.workspace }}\LocalAI-win-x64.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LocalAI-win-x64
+          path: LocalAI-win-x64.zip
+          if-no-files-found: error
