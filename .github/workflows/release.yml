@@ -48,12 +48,76 @@ jobs:
           --self-contained true
           --output "${{ github.workspace }}\publish\win-x64"
 
-      - name: Create ZIP package
+      - name: Install Inno Setup
         shell: pwsh
         run: |
-          Compress-Archive `
-            -Path "${{ github.workspace }}\publish\win-x64\*" `
-            -DestinationPath "${{ github.workspace }}\LocalAI-win-x64.zip"
+          winget install `
+            --id JRSoftware.InnoSetup.7 `
+            -e `
+            --silent `
+            --accept-source-agreements `
+            --accept-package-agreements
+
+      - name: Build Windows Installer
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}" -replace '^v', ''
+
+          Write-Host "Release version: $version"
+
+          $iscc = Get-Command iscc.exe -ErrorAction SilentlyContinue
+
+          if ($iscc) {
+              $isccPath = $iscc.Source
+          }
+          else {
+              $iscc = Get-ChildItem `
+                  "$env:LOCALAPPDATA\Programs", `
+                  "C:\Program Files", `
+                  "C:\Program Files (x86)" `
+                  -Filter "ISCC.exe" `
+                  -Recurse `
+                  -ErrorAction SilentlyContinue |
+                  Select-Object -First 1
+
+              if (-not $iscc) {
+                  throw "Inno Setup compiler (ISCC.exe) was not found."
+              }
+
+              $isccPath = $iscc.FullName
+          }
+
+          Write-Host "Using Inno Setup compiler: $isccPath"
+
+          & $isccPath `
+            "/DMyAppVersion=$version" `
+            ".\installer\LocalAI.iss"
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Inno Setup compilation failed."
+          }
+
+          Write-Host "Installer build completed successfully."
+
+      - name: Verify release artifacts
+        shell: pwsh
+        run: |
+          $zip = "${{ github.workspace }}\LocalAI-win-x64.zip"
+          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$("${{ inputs.version }}" -replace '^v', '').exe"
+
+          if (-not (Test-Path $zip)) {
+              throw "ZIP package was not found: $zip"
+          }
+
+          if (-not (Test-Path $installer)) {
+              throw "Installer was not found: $installer"
+          }
+
+          Write-Host "ZIP package:"
+          Get-Item $zip | Select-Object FullName, Length
+
+          Write-Host "Windows installer:"
+          Get-Item $installer | Select-Object FullName, Length
 
       - name: Create GitHub Release
         shell: pwsh
@@ -61,8 +125,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
+          $version = $env:VERSION -replace '^v', ''
+
+          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$version.exe"
+          $zip = "${{ github.workspace }}\LocalAI-win-x64.zip"
+
           gh release create "$env:VERSION" `
-            "${{ github.workspace }}\LocalAI-win-x64.zip" `
+            "$zip" `
+            "$installer" `
             --title "LocalAI $env:VERSION" `
             --generate-notes `
             --latest

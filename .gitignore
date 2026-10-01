@@ -5,6 +5,11 @@
 *.userosscache
 *.sln.docstates
 
+# Code coverage
+CoverageReport/
+TestResults/
+coverage.cobertura.xml
+
 # Build output
 **/bin/
 **/obj/
