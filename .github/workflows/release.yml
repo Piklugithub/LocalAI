@@ -52,8 +52,8 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive `
-           -Path "${{ github.workspace }}\publish\win-x64\*" `
-           -DestinationPath "${{ github.workspace }}\LocalAI-win-x64.zip"
+            -Path "${{ github.workspace }}\publish\win-x64\*" `
+            -DestinationPath "${{ github.workspace }}\LocalAI-win-x64.zip"
 
       - name: Install Inno Setup
         shell: pwsh
@@ -109,8 +109,11 @@ jobs:
       - name: Verify release artifacts
         shell: pwsh
         run: |
+          $version = "${{ inputs.version }}" -replace '^v', ''
+
           $zip = "${{ github.workspace }}\LocalAI-win-x64.zip"
-          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$("${{ inputs.version }}" -replace '^v', '').exe"
+          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$version.exe"
+          $manual = "${{ github.workspace }}\docs\LocalAI-User-Manual.pdf"
 
           if (-not (Test-Path $zip)) {
               throw "ZIP package was not found: $zip"
@@ -120,11 +123,18 @@ jobs:
               throw "Installer was not found: $installer"
           }
 
+          if (-not (Test-Path $manual)) {
+              throw "User manual was not found: $manual"
+          }
+
           Write-Host "ZIP package:"
           Get-Item $zip | Select-Object FullName, Length
 
           Write-Host "Windows installer:"
           Get-Item $installer | Select-Object FullName, Length
+
+          Write-Host "User manual:"
+          Get-Item $manual | Select-Object FullName, Length
 
       - name: Create GitHub Release
         shell: pwsh
@@ -134,12 +144,14 @@ jobs:
         run: |
           $version = $env:VERSION -replace '^v', ''
 
-          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$version.exe"
           $zip = "${{ github.workspace }}\LocalAI-win-x64.zip"
+          $installer = "${{ github.workspace }}\artifacts\installer\LocalAI-Setup-v$version.exe"
+          $manual = "${{ github.workspace }}\docs\LocalAI-User-Manual.pdf"
 
           gh release create "$env:VERSION" `
-            "$zip" `
             "$installer" `
+            "$zip" `
+            "$manual" `
             --title "LocalAI $env:VERSION" `
             --generate-notes `
             --latest
