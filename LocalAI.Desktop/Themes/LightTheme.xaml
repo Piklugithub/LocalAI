@@ -1,0 +1,81 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Window -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush"
+                     Color="#F7F8FA" />
+
+    <!-- Sidebar -->
+    <SolidColorBrush x:Key="SidebarBackgroundBrush"
+                     Color="#FFFFFF" />
+
+    <!-- Main content -->
+    <SolidColorBrush x:Key="ContentBackgroundBrush"
+                     Color="#F7F8FA" />
+
+    <!-- Cards -->
+    <SolidColorBrush x:Key="CardBackgroundBrush"
+                     Color="#FFFFFF" />
+
+    <!-- Primary text -->
+    <SolidColorBrush x:Key="PrimaryTextBrush"
+                     Color="#111827" />
+
+    <!-- Secondary text -->
+    <SolidColorBrush x:Key="SecondaryTextBrush"
+                     Color="#64748B" />
+
+    <!-- Muted text -->
+    <SolidColorBrush x:Key="MutedTextBrush"
+                     Color="#94A3B8" />
+
+    <!-- Border -->
+    <SolidColorBrush x:Key="BorderBrush"
+                     Color="#E5E7EB" />
+
+    <!-- Input -->
+    <SolidColorBrush x:Key="InputBackgroundBrush"
+                     Color="#FFFFFF" />
+
+    <!-- Accent -->
+    <SolidColorBrush x:Key="AccentBrush"
+                     Color="#2563EB" />
+
+    <!-- Accent hover -->
+    <SolidColorBrush x:Key="AccentHoverBrush"
+                     Color="#1D4ED8" />
+
+    <SolidColorBrush x:Key="UserMessageBackgroundBrush"
+                 Color="#E8F0FE" />
+
+    <SolidColorBrush x:Key="UserMessageLabelBrush"
+                 Color="#5272B8" />
+
+    <SolidColorBrush x:Key="UserMessageTextBrush"
+                 Color="#1E3A8A" />
+
+    <!-- Sidebar -->
+    <SolidColorBrush x:Key="SidebarItemHoverBrush"
+                 Color="#F3F4F6" />
+
+    <SolidColorBrush x:Key="SidebarItemSelectedBrush"
+                 Color="#E8F0FE" />
+
+    <!-- Dropdown -->
+    <SolidColorBrush x:Key="DropdownBackgroundBrush"
+                 Color="#FFFFFF" />
+
+    <SolidColorBrush x:Key="DropdownBorderBrush"
+                 Color="#D1D5DB" />
+
+    <SolidColorBrush x:Key="DropdownItemHoverBrush"
+                 Color="#F3F4F6" />
+
+    <SolidColorBrush x:Key="DropdownItemSelectedBrush"
+                 Color="#E8F0FE" />
+
+    <SolidColorBrush x:Key="DropdownTextBrush"
+                 Color="#1F2937" />
+
+</ResourceDictionary>

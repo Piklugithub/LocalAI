@@ -4,7 +4,7 @@
         xmlns:selectors="clr-namespace:LocalAI.Desktop.Selectors"
         Icon="/LocalAI.Desktop;component/Assets/LocalAI.ico"
         Title="LocalAI"
-        Background="#F7F8FA"
+        Background="{DynamicResource WindowBackgroundBrush}"
         Width="1200"
         Height="760"
         MinWidth="850"
@@ -22,7 +22,7 @@
                     Value="Segoe UI" />
 
             <Setter Property="Foreground"
-                    Value="#1F2937" />
+                    Value="{DynamicResource PrimaryTextBrush}" />
         </Style>
 
 
@@ -110,22 +110,25 @@
         <!-- ========================================================= -->
 
         <Style x:Key="ConversationItemStyle"
-               TargetType="ListBoxItem">
+       TargetType="ListBoxItem">
 
             <Setter Property="HorizontalContentAlignment"
-                    Value="Stretch" />
+            Value="Stretch" />
 
             <Setter Property="Padding"
-                    Value="0" />
+            Value="0" />
 
             <Setter Property="Margin"
-                    Value="6,2" />
+            Value="6,3" />
 
             <Setter Property="Background"
-                    Value="Transparent" />
+            Value="Transparent" />
 
             <Setter Property="BorderThickness"
-                    Value="0" />
+            Value="0" />
+
+            <Setter Property="Foreground"
+            Value="{DynamicResource PrimaryTextBrush}" />
 
             <Setter Property="Template">
 
@@ -134,33 +137,56 @@
                     <ControlTemplate TargetType="ListBoxItem">
 
                         <Border x:Name="ItemBorder"
-                                Background="Transparent"
-                                CornerRadius="9"
-                                Padding="12,10">
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="9"
+                        Padding="12,10">
 
-                            <ContentPresenter />
+                            <ContentPresenter
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center" />
 
                         </Border>
 
                         <ControlTemplate.Triggers>
 
+                            <!-- Hover -->
                             <Trigger Property="IsMouseOver"
-                                     Value="True">
+                             Value="True">
 
                                 <Setter TargetName="ItemBorder"
-                                        Property="Background"
-                                        Value="#F3F4F6" />
+                                Property="Background"
+                                Value="{DynamicResource SidebarItemHoverBrush}" />
 
                             </Trigger>
 
+                            <!-- Selected -->
                             <Trigger Property="IsSelected"
-                                     Value="True">
+                             Value="True">
 
                                 <Setter TargetName="ItemBorder"
-                                        Property="Background"
-                                        Value="#E8F0FE" />
+                                Property="Background"
+                                Value="{DynamicResource SidebarItemSelectedBrush}" />
 
                             </Trigger>
+
+                            <!-- Selected + Hover -->
+                            <MultiTrigger>
+
+                                <MultiTrigger.Conditions>
+
+                                    <Condition Property="IsSelected"
+                                       Value="True" />
+
+                                    <Condition Property="IsMouseOver"
+                                       Value="True" />
+
+                                </MultiTrigger.Conditions>
+
+                                <Setter TargetName="ItemBorder"
+                                Property="Background"
+                                Value="{DynamicResource SidebarItemSelectedBrush}" />
+
+                            </MultiTrigger>
 
                         </ControlTemplate.Triggers>
 
@@ -178,31 +204,250 @@
         <!-- ========================================================= -->
 
         <Style x:Key="ModernComboBox"
-               TargetType="ComboBox">
+       TargetType="ComboBox">
 
             <Setter Property="FontFamily"
-                    Value="Segoe UI" />
+            Value="Segoe UI" />
 
             <Setter Property="FontSize"
-                    Value="13" />
+            Value="13" />
 
             <Setter Property="Foreground"
-                    Value="#374151" />
+            Value="{DynamicResource PrimaryTextBrush}" />
 
             <Setter Property="Background"
-                    Value="#F9FAFB" />
+            Value="{DynamicResource InputBackgroundBrush}" />
 
             <Setter Property="BorderBrush"
-                    Value="#D1D5DB" />
+            Value="{DynamicResource BorderBrush}" />
 
             <Setter Property="BorderThickness"
-                    Value="1" />
+            Value="1" />
 
             <Setter Property="Padding"
-                    Value="8,4" />
+            Value="10,5" />
+
+            <Setter Property="Height"
+            Value="36" />
 
             <Setter Property="Cursor"
-                    Value="Hand" />
+            Value="Hand" />
+
+            <Setter Property="Template">
+
+                <Setter.Value>
+
+                    <ControlTemplate TargetType="ComboBox">
+
+                        <Grid VerticalAlignment="Center">
+
+                            <!-- Main ComboBox -->
+                            <Border x:Name="ComboBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="9">
+
+                                <Grid>
+
+                                    <!-- Selected value -->
+                                    <TextBlock
+                                    Margin="11,0,34,0"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Left"
+                                    Text="{Binding SelectedValue,
+                                                   RelativeSource={RelativeSource TemplatedParent}}"
+                                    Foreground="{DynamicResource PrimaryTextBrush}"
+                                    TextTrimming="CharacterEllipsis"
+                                    MaxWidth="180" />
+
+                                    <!-- Arrow -->
+                                    <Border Width="28"
+                                    HorizontalAlignment="Right"
+                                    Background="Transparent">
+
+                                        <Path
+                                    Width="8"
+                                    Height="5"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Data="M 0 0 L 4 4 L 8 0"
+                                    Stroke="{DynamicResource SecondaryTextBrush}"
+                                    StrokeThickness="1.5"
+                                    Stretch="Fill" />
+
+                                    </Border>
+
+                                    <!-- Invisible toggle button -->
+                                    <ToggleButton
+                                x:Name="DropDownToggle"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Focusable="False"
+                                IsChecked="{Binding IsDropDownOpen,
+                                                    RelativeSource={RelativeSource TemplatedParent},
+                                                    Mode=TwoWay}">
+
+                                        <ToggleButton.Template>
+
+                                            <ControlTemplate TargetType="ToggleButton">
+
+                                                <Border Background="Transparent"
+                                                CornerRadius="9" />
+
+                                            </ControlTemplate>
+
+                                        </ToggleButton.Template>
+
+                                    </ToggleButton>
+
+                                </Grid>
+
+                            </Border>
+
+                            <!-- Dropdown -->
+                            <Popup x:Name="PART_Popup"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           IsOpen="{TemplateBinding IsDropDownOpen}"
+                           Placement="Bottom"
+                           PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                           PopupAnimation="Fade">
+
+                                <Border
+                            Margin="0,6,0,0"
+                            MinWidth="{Binding ActualWidth,
+                                               RelativeSource={RelativeSource TemplatedParent}}"
+                            Background="{DynamicResource DropdownBackgroundBrush}"
+                            BorderBrush="{DynamicResource DropdownBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="4">
+
+                                    <ScrollViewer
+                                MaxHeight="300"
+                                HorizontalScrollBarVisibility="Disabled"
+                                VerticalScrollBarVisibility="Auto">
+
+                                        <ItemsPresenter />
+
+                                    </ScrollViewer>
+
+                                </Border>
+
+                            </Popup>
+
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+
+                            <!-- Hover -->
+                            <Trigger Property="IsMouseOver"
+                             Value="True">
+
+                                <Setter TargetName="ComboBorder"
+                                Property="BorderBrush"
+                                Value="{DynamicResource AccentBrush}" />
+
+                            </Trigger>
+
+                            <!-- Focus -->
+                            <Trigger Property="IsKeyboardFocusWithin"
+                             Value="True">
+
+                                <Setter TargetName="ComboBorder"
+                                Property="BorderBrush"
+                                Value="{DynamicResource AccentBrush}" />
+
+                            </Trigger>
+
+                            <!-- Disabled -->
+                            <Trigger Property="IsEnabled"
+                             Value="False">
+
+                                <Setter TargetName="ComboBorder"
+                                Property="Opacity"
+                                Value="0.55" />
+
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+
+                    </ControlTemplate>
+
+                </Setter.Value>
+
+            </Setter>
+
+        </Style>
+
+        <Style x:Key="ModernComboBoxItem"
+       TargetType="ComboBoxItem">
+
+            <Setter Property="Foreground"
+            Value="{DynamicResource DropdownTextBrush}" />
+
+            <Setter Property="Background"
+            Value="Transparent" />
+
+            <Setter Property="Padding"
+            Value="10,8" />
+
+            <Setter Property="Margin"
+            Value="2,1" />
+
+            <Setter Property="HorizontalContentAlignment"
+            Value="Stretch" />
+
+            <Setter Property="Template">
+
+                <Setter.Value>
+
+                    <ControlTemplate TargetType="ComboBoxItem">
+
+                        <Border x:Name="ItemBorder"
+                        Background="{TemplateBinding Background}"
+                        CornerRadius="7"
+                        Padding="{TemplateBinding Padding}">
+
+                            <ContentPresenter
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Left" />
+
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+
+                            <!-- Hover -->
+                            <Trigger Property="IsMouseOver"
+                             Value="True">
+
+                                <Setter TargetName="ItemBorder"
+                                Property="Background"
+                                Value="{DynamicResource DropdownItemHoverBrush}" />
+
+                            </Trigger>
+
+                            <!-- Selected -->
+                            <Trigger Property="IsSelected"
+                             Value="True">
+
+                                <Setter TargetName="ItemBorder"
+                                Property="Background"
+                                Value="{DynamicResource DropdownItemSelectedBrush}" />
+
+                                <Setter Property="Foreground"
+                                Value="{DynamicResource DropdownTextBrush}" />
+
+                            </Trigger>
+
+                        </ControlTemplate.Triggers>
+
+                    </ControlTemplate>
+
+                </Setter.Value>
+
+            </Setter>
 
         </Style>
 
@@ -219,14 +464,14 @@
                 MaxWidth="720"
                 Padding="15,11"
                 CornerRadius="16"
-                Background="#E8F0FE">
+                Background="{DynamicResource UserMessageBackgroundBrush}">
 
                     <StackPanel>
 
                         <TextBlock Text="You"
                            FontSize="11"
                            FontWeight="SemiBold"
-                           Foreground="#5272B8"
+                           Foreground="{DynamicResource UserMessageLabelBrush}"
                            HorizontalAlignment="Right"
                            Margin="0,0,0,4" />
 
@@ -234,7 +479,7 @@
                            TextWrapping="Wrap"
                            FontSize="14"
                            LineHeight="21"
-                           Foreground="#1E3A8A" />
+                           Foreground="{DynamicResource UserMessageTextBrush}" />
 
                     </StackPanel>
 
@@ -277,7 +522,7 @@
                         <TextBlock Text="LocalAI"
                            FontSize="11"
                            FontWeight="SemiBold"
-                           Foreground="#64748B"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
                            VerticalAlignment="Center"
                            Margin="9,0,0,0" />
 
@@ -286,8 +531,8 @@
 
                     <!-- AI response -->
 
-                    <Border Background="#FFFFFF"
-                    BorderBrush="#E5E7EB"
+                    <Border Background="{DynamicResource CardBackgroundBrush}"
+                    BorderBrush="{DynamicResource BorderBrush}"
                     BorderThickness="1"
                     CornerRadius="14"
                     Padding="15,12">
@@ -296,7 +541,7 @@
                            TextWrapping="Wrap"
                            FontSize="14"
                            LineHeight="22"
-                           Foreground="#1F2937" />
+                           Foreground="{DynamicResource PrimaryTextBrush}" />
 
                     </Border>
 
@@ -323,7 +568,7 @@
     <!-- Main Layout -->
     <!-- ============================================================= -->
 
-    <Grid Background="#F7F8FA">
+    <Grid Background="{DynamicResource ContentBackgroundBrush}">
 
         <!-- ========================================================= -->
         <!-- Main Rows -->
@@ -365,8 +610,8 @@
         <Border Grid.Row="0"
             Grid.Column="0"
             Grid.ColumnSpan="2"
-            Background="#FFFFFF"
-            BorderBrush="#E8EAF0"
+            Background="{DynamicResource SidebarBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,0,1">
 
             <Grid Margin="22,0">
@@ -388,11 +633,11 @@
                         <TextBlock Text="LocalAI"
                                FontSize="20"
                                FontWeight="SemiBold"
-                               Foreground="#111827" />
+                               Foreground="{DynamicResource PrimaryTextBrush}" />
 
                         <TextBlock Text="Offline AI"
                                FontSize="10"
-                               Foreground="#94A3B8"
+                               Foreground="{DynamicResource MutedTextBrush}"
                                Margin="1,1,0,0" />
 
                     </StackPanel>
@@ -421,13 +666,37 @@
                     <!-- Model Selector -->
 
                     <ComboBox x:Name="ModelComboBox"
-                          Width="190"
-                          Height="34"
+                          Width="220"
+                          Height="36"
                           Margin="0,0,14,0"
                           DisplayMemberPath="Name"
+                          SelectedValuePath="Name"
                           SelectionChanged="ModelComboBox_SelectionChanged"
-                          Style="{StaticResource ModernComboBox}" />
+                          Style="{StaticResource ModernComboBox}"
+                          ItemContainerStyle="{StaticResource ModernComboBoxItem}" />
 
+                    <TextBlock Text="Theme"
+                           FontSize="12"
+                           Foreground="{DynamicResource SecondaryTextBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+
+                    <ComboBox x:Name="ThemeComboBox"
+                          Width="90"
+                          Height="36"
+                          Margin="0,0,14,0"
+                          SelectedValuePath="Tag"
+                          SelectionChanged="ThemeComboBox_SelectionChanged"
+                          Style="{StaticResource ModernComboBox}"
+                          ItemContainerStyle="{StaticResource ModernComboBoxItem}">
+
+                                <ComboBoxItem Content="Light"
+                                  Tag="Light" />
+
+                                <ComboBoxItem Content="Dark"
+                                  Tag="Dark" />
+
+                    </ComboBox>
 
                     <!-- Model Status -->
 
@@ -492,8 +761,8 @@
         <Border Grid.Row="1"
             Grid.RowSpan="2"
             Grid.Column="0"
-            Background="#FFFFFF"
-            BorderBrush="#E8EAF0"
+            Background="{DynamicResource SidebarBackgroundBrush}"
+            BorderBrush="{DynamicResource BorderBrush}"
             BorderThickness="0,0,1,0">
 
             <Grid>
@@ -515,11 +784,11 @@
                     <TextBlock Text="Conversations"
                            FontSize="14"
                            FontWeight="SemiBold"
-                           Foreground="#374151" />
+                           Foreground="{DynamicResource PrimaryTextBrush}" />
 
                     <TextBlock Text="Your recent chats"
                            FontSize="11"
-                           Foreground="#9CA3AF"
+                           Foreground="{DynamicResource MutedTextBrush}"
                            Margin="0,3,0,0" />
 
                 </StackPanel>
@@ -543,7 +812,7 @@
 
                             <TextBlock Text="{Binding Title}"
                                    FontSize="13"
-                                   Foreground="#374151"
+                                   Foreground="{DynamicResource PrimaryTextBrush}"
                                    TextTrimming="CharacterEllipsis"
                                    VerticalAlignment="Center" />
 
@@ -563,16 +832,72 @@
         <!-- ========================================================= -->
 
         <Grid Grid.Row="1"
-          Grid.Column="1"
-          Background="#F7F8FA">
+         Grid.Column="1"
+         Background="{DynamicResource ContentBackgroundBrush}">
 
+            <!-- Welcome Screen -->
+            <Grid x:Name="WelcomePanel"
+          Visibility="Collapsed">
+
+                <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="520">
+
+                    <!-- Welcome Icon -->
+                    <Border Width="72"
+                    Height="72"
+                    CornerRadius="36"
+                    Background="#E8F0FE"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,20">
+
+                        <TextBlock Text="✦"
+                           FontSize="34"
+                           Foreground="#2563EB"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           TextAlignment="Center" />
+
+                    </Border>
+
+                    <!-- Welcome Title -->
+                    <TextBlock x:Name="WelcomeTextBlock"
+                       Text="Welcome 👋"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Foreground="#111827"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center" />
+
+                    <!-- Subtitle -->
+                    <TextBlock Text="Your local AI assistant is ready."
+                       FontSize="15"
+                       Foreground="#64748B"
+                       Margin="0,10,0,0"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center" />
+
+                    <!-- Instruction -->
+                    <TextBlock Text="Select a model and start a conversation."
+                       FontSize="13"
+                       Foreground="#94A3B8"
+                       Margin="0,6,0,0"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center" />
+
+                </StackPanel>
+
+            </Grid>
+
+
+            <!-- Chat Messages -->
             <ScrollViewer x:Name="ChatScrollViewer"
-                      VerticalScrollBarVisibility="Auto"
-                      HorizontalScrollBarVisibility="Disabled">
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
 
                 <ItemsControl x:Name="MessagesItemsControl"
-                          Margin="30,24,30,30"
-                          ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}" />
+                      Margin="30,24,30,30"
+                      ItemTemplateSelector="{StaticResource ChatMessageTemplateSelector}" />
 
             </ScrollViewer>
 
@@ -585,11 +910,11 @@
 
         <Border Grid.Row="2"
             Grid.Column="1"
-            Background="#F7F8FA"
+            Background="{DynamicResource ContentBackgroundBrush}"
             Padding="20,10,20,18">
 
-            <Border Background="#FFFFFF"
-                BorderBrush="#DDE2E8"
+            <Border Background="{DynamicResource InputBackgroundBrush}"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="8,6">
@@ -620,7 +945,7 @@
                          VerticalContentAlignment="Center"
                          BorderThickness="0"
                          Background="Transparent"
-                         Foreground="#1F2937"
+                         Foreground="{DynamicResource PrimaryTextBrush}"
                          KeyDown="MessageTextBox_KeyDown" />
 
 
@@ -634,7 +959,7 @@
                         Width="42"
                         Height="36"
                         Margin="8,0,0,0"
-                        Background="#2563EB"
+                        Background="{DynamicResource AccentBrush}"
                         Foreground="White"
                         BorderThickness="0"
                         FontSize="17"

@@ -1,5 +1,6 @@
 ﻿using LocalAI.Application.Configuration;
 using LocalAI.Application.DependencyInjection;
+using LocalAI.Desktop.Services;
 using LocalAI.Inference.DependencyInjection;
 using LocalAI.Infrastructure.DependencyInjection;
 using LocalAI.Infrastructure.Persistence;
@@ -47,10 +48,12 @@ public partial class App : System.Windows.Application
                 services.AddLocalAIApplication();
 
                 services.AddLocalAIInfrastructure();
-
+                
                 services.AddLocalAIInference();
 
                 services.AddSingleton<MainWindow>();
+
+                services.AddSingleton<ThemeService>();
             })
             .Build();
     }
@@ -63,6 +66,12 @@ public partial class App : System.Windows.Application
         try
         {
             await _host.StartAsync();
+
+            var themeService =
+            _host.Services.GetRequiredService<ThemeService>();
+
+            themeService.ApplyTheme(themeService.CurrentTheme);
+
 
             // Initialize database first.
             using (var scope = _host.Services.CreateScope())
