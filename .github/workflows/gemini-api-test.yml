@@ -1,5 +1,5 @@
 
-name: Hugging Face API Test
+name: Hugging Face Model Discovery
 
 on:
   workflow_dispatch:
@@ -8,67 +8,58 @@ permissions:
   contents: read
 
 jobs:
-  test-huggingface-api:
-    name: Test Hugging Face API
+  discover-models:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
 
     steps:
-      - name: Call Hugging Face API
+      - name: Discover available chat models
         shell: bash
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_MODEL: Qwen/Qwen2.5-Coder-32B-Instruct
         run: |
           set -euo pipefail
 
-          if [[ -z "${HF_TOKEN:-}" ]]; then
-            echo "::error::HF_TOKEN secret is missing."
-            exit 1
-          fi
+          response="$(mktemp)"
+          trap 'rm -f "$response"' EXIT
 
-          request_file="$(mktemp)"
-          response_file="$(mktemp)"
-          trap 'rm -f "$request_file" "$response_file"' EXIT
-
-          jq -n '{
-            model: env.HF_MODEL,
-            messages: [{
-              role: "user",
-              content: "Review this C# method for bugs and suggest a safer implementation: public static int Divide(int a, int b) => a / b;"
-            }],
-            max_tokens: 512,
-            stream: false
-          }' > "$request_file"
-
-          echo "Calling Hugging Face model: $HF_MODEL"
-
-          http_status="$(curl -4 --silent --show-error \
+          status="$(curl --silent --show-error \
             --connect-timeout 15 \
-            --max-time 120 \
-            --output "$response_file" \
+            --max-time 60 \
+            --output "$response" \
             --write-out "%{http_code}" \
-            --request POST \
-            "https://router.huggingface.co/v1/chat/completions" \
-            --header "Authorization: Bearer ${HF_TOKEN}" \
-            --header "Content-Type: application/json" \
-            --data-binary "@$request_file")" || {
-              echo "::error::Hugging Face request failed at network level."
-              exit 1
-            }
+            "https://router.huggingface.co/v1/models" \
+            -H "Authorization: Bearer ${HF_TOKEN}")"
 
-          if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
-            echo "::error::Hugging Face returned HTTP $http_status."
-            jq -r '.error.message // .error // .' "$response_file" 2>/dev/null || true
+          if [[ "$status" != "200" ]]; then
+            echo "::error::Model discovery failed: HTTP $status"
+            jq -r '.error.message // .' "$response" 2>/dev/null || true
             exit 1
           fi
 
-          response="$(jq -r '.choices[0].message.content // empty' "$response_file")"
-
-          if [[ -z "$response" ]]; then
-            echo "::error::No response received from the model."
-            exit 1
-          fi
-
-          echo "Hugging Face API connection successful!"
-          echo "$response"
+          echo "Available coding and instruction models:"
+          jq -r '
+            .data[]
+            | select(
+                (.id | ascii_downcase)
+                | test("coder|qwen|deepseek|gemma|llama")
+              )
+            | . as $model
+            | .providers[]?
+            | select(.status == "live")
+            | [
+                $model.id,
+                .provider,
+                (.pricing.input // "unknown" | tostring),
+                (.pricing.output // "unknown" | tostring),
+                (.is_free // false | tostring)
+              ]
+            | @tsv
+          ' "$response" |
+          while IFS=$'\t' read -r model provider input output free; do
+            echo "Model: $model"
+            echo "Provider: $provider"
+            echo "Input price (USD / million tokens): $input"
+            echo "Output price (USD / million tokens): $output"
+            echo "Free provider offer: $free"
+            echo "-----------------------------"
+          done
