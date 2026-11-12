@@ -11,7 +11,7 @@ jobs:
   test-gemini-api:
     name: Test Gemini API connection
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 4
 
     steps:
       - name: Call Gemini API
@@ -43,22 +43,33 @@ jobs:
             contents: [{
               role: "user",
               parts: [{ text: $prompt }]
-            }]
+            }],
+            generationConfig: {
+              maxOutputTokens: 512,
+              thinkingConfig: {
+                thinkingLevel: "low"
+              }
+            }
           }' > "$request_file"
 
-          echo "Calling Gemini: $GEMINI_MODEL"
+          echo "Connecting to Gemini: $GEMINI_MODEL"
 
-          http_status="$(curl --silent --show-error \
+          if ! http_status="$(curl --silent --show-error \
+            --connect-timeout 15 \
+            --max-time 120 \
             --output "$response_file" \
             --write-out "%{http_code}" \
             --request POST \
             "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent" \
             --header "Content-Type: application/json" \
             --header "x-goog-api-key: ${GEMINI_API_KEY}" \
-            --data-binary "@$request_file")"
+            --data-binary "@$request_file")"; then
+              echo "::error::Could not complete the Gemini HTTP request. Check network connectivity or request timeout."
+              exit 1
+          fi
 
           if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
-            echo "::error::Gemini API failed. HTTP status: $http_status"
+            echo "::error::Gemini API returned HTTP $http_status."
             jq -r '.error.message // .' "$response_file" 2>/dev/null || true
             exit 1
           fi
@@ -70,6 +81,7 @@ jobs:
 
           if [[ -z "$review_text" ]]; then
             echo "::error::Gemini returned no text response."
+            jq '{promptFeedback, candidates, usageMetadata}' "$response_file"
             exit 1
           fi
 
