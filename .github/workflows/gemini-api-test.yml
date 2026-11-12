@@ -1,0 +1,78 @@
+
+name: Gemini API Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-gemini-api:
+    name: Test Gemini API connection
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call Gemini API
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.8-flash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GEMINI_API_KEY:-}" ]]; then
+            echo "::error::GEMINI_API_KEY secret is missing."
+            exit 1
+          fi
+
+          prompt='Review this C# method for a potential bug.
+          Explain the issue and suggest a safer implementation.
+
+          public static int CalculateAverage(int total, int count)
+          {
+              return total / count;
+          }'
+
+          request_file="$(mktemp)"
+          response_file="$(mktemp)"
+          trap 'rm -f "$request_file" "$response_file"' EXIT
+
+          jq -n --arg prompt "$prompt" '{
+            contents: [{
+              role: "user",
+              parts: [{ text: $prompt }]
+            }]
+          }' > "$request_file"
+
+          echo "Calling Gemini: $GEMINI_MODEL"
+
+          http_status="$(curl --silent --show-error \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent" \
+            --header "Content-Type: application/json" \
+            --header "x-goog-api-key: ${GEMINI_API_KEY}" \
+            --data-binary "@$request_file")"
+
+          if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Gemini API failed. HTTP status: $http_status"
+            jq -r '.error.message // .' "$response_file" 2>/dev/null || true
+            exit 1
+          fi
+
+          review_text="$(jq -r '
+            [.candidates[0].content.parts[]?.text? // empty]
+            | join("\n")
+          ' "$response_file")"
+
+          if [[ -z "$review_text" ]]; then
+            echo "::error::Gemini returned no text response."
+            exit 1
+          fi
+
+          echo "Gemini API connection successful!"
+          echo "Model response:"
+          echo "$review_text"
