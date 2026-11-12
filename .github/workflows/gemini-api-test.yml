@@ -13,7 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 4
 
-    steps:
+    steps:  
+      - name: Check Google API connectivity
+        shell: bash
+        run: |
+          echo "Checking DNS resolution..."
+          getent ahosts generativelanguage.googleapis.com || true
+
+          echo "Checking HTTPS connectivity over IPv4..."
+          curl -4 -I \
+            --connect-timeout 15 \
+            --max-time 30 \
+            https://generativelanguage.googleapis.com
+
       - name: Call Gemini API
         shell: bash
         env:
