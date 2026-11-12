@@ -26,6 +26,7 @@ jobs:
             --max-time 30 \
             https://generativelanguage.googleapis.com
 
+      
       - name: Call Gemini API
         shell: bash
         env:
@@ -57,34 +58,49 @@ jobs:
               parts: [{ text: $prompt }]
             }],
             generationConfig: {
-              maxOutputTokens: 512,
-              thinkingConfig: {
-                thinkingLevel: "low"
-              }
+              maxOutputTokens: 512
             }
           }' > "$request_file"
 
-          echo "Connecting to Gemini: $GEMINI_MODEL"
+          for attempt in 1 2 3; do
+            echo "Gemini request attempt $attempt of 3"
 
-          if ! http_status="$(curl --silent --show-error \
-            --connect-timeout 15 \
-            --max-time 120 \
-            --output "$response_file" \
-            --write-out "%{http_code}" \
-            --request POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent" \
-            --header "Content-Type: application/json" \
-            --header "x-goog-api-key: ${GEMINI_API_KEY}" \
-            --data-binary "@$request_file")"; then
-              echo "::error::Could not complete the Gemini HTTP request. Check network connectivity or request timeout."
+            if http_status="$(curl -4 --silent --show-error \
+              --connect-timeout 15 \
+              --max-time 120 \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              --request POST \
+              "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent" \
+              --header "Content-Type: application/json" \
+              --header "x-goog-api-key: ${GEMINI_API_KEY}" \
+              --data-binary "@$request_file")"; then
+
+              if [[ "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+                break
+              fi
+
+              if [[ ! "$http_status" =~ ^(429|500|502|503|504)$ ]]; then
+                echo "::error::Gemini returned HTTP $http_status."
+                jq -r '.error.message // .' "$response_file" 2>/dev/null || true
+                exit 1
+              fi
+
+              echo "Temporary Gemini error: HTTP $http_status"
+            else
+              echo "Temporary HTTP/network failure."
+            fi
+
+            if [[ "$attempt" -eq 3 ]]; then
+              echo "::error::Gemini request failed after 3 attempts."
+              jq -r '.error.message // .' "$response_file" 2>/dev/null || true
               exit 1
-          fi
+            fi
 
-          if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
-            echo "::error::Gemini API returned HTTP $http_status."
-            jq -r '.error.message // .' "$response_file" 2>/dev/null || true
-            exit 1
-          fi
+            delay=$((2 ** attempt))
+            echo "Retrying in $delay seconds..."
+            sleep "$delay"
+          done
 
           review_text="$(jq -r '
             [.candidates[0].content.parts[]?.text? // empty]
@@ -93,10 +109,9 @@ jobs:
 
           if [[ -z "$review_text" ]]; then
             echo "::error::Gemini returned no text response."
-            jq '{promptFeedback, candidates, usageMetadata}' "$response_file"
             exit 1
           fi
 
           echo "Gemini API connection successful!"
-          echo "Model response:"
           echo "$review_text"
+
