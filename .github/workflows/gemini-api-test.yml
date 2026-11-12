@@ -1,5 +1,5 @@
 
-name: Gemini API Test
+name: Hugging Face API Test
 
 on:
   workflow_dispatch:
@@ -8,110 +8,67 @@ permissions:
   contents: read
 
 jobs:
-  test-gemini-api:
-    name: Test Gemini API connection
+  test-huggingface-api:
+    name: Test Hugging Face API
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
 
-    steps:  
-      - name: Check Google API connectivity
-        shell: bash
-        run: |
-          echo "Checking DNS resolution..."
-          getent ahosts generativelanguage.googleapis.com || true
-
-          echo "Checking HTTPS connectivity over IPv4..."
-          curl -4 -I \
-            --connect-timeout 15 \
-            --max-time 30 \
-            https://generativelanguage.googleapis.com
-
-      
-      - name: Call Gemini API
+    steps:
+      - name: Call Hugging Face API
         shell: bash
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-3.8-flash
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_MODEL: Qwen/Qwen2.5-Coder-32B-Instruct
         run: |
           set -euo pipefail
 
-          if [[ -z "${GEMINI_API_KEY:-}" ]]; then
-            echo "::error::GEMINI_API_KEY secret is missing."
+          if [[ -z "${HF_TOKEN:-}" ]]; then
+            echo "::error::HF_TOKEN secret is missing."
             exit 1
           fi
-
-          prompt='Review this C# method for a potential bug.
-          Explain the issue and suggest a safer implementation.
-
-          public static int CalculateAverage(int total, int count)
-          {
-              return total / count;
-          }'
 
           request_file="$(mktemp)"
           response_file="$(mktemp)"
           trap 'rm -f "$request_file" "$response_file"' EXIT
 
-          jq -n --arg prompt "$prompt" '{
-            contents: [{
+          jq -n '{
+            model: env.HF_MODEL,
+            messages: [{
               role: "user",
-              parts: [{ text: $prompt }]
+              content: "Review this C# method for bugs and suggest a safer implementation: public static int Divide(int a, int b) => a / b;"
             }],
-            generationConfig: {
-              maxOutputTokens: 512
-            }
+            max_tokens: 512,
+            stream: false
           }' > "$request_file"
 
-          for attempt in 1 2 3; do
-            echo "Gemini request attempt $attempt of 3"
+          echo "Calling Hugging Face model: $HF_MODEL"
 
-            if http_status="$(curl -4 --silent --show-error \
-              --connect-timeout 15 \
-              --max-time 120 \
-              --output "$response_file" \
-              --write-out "%{http_code}" \
-              --request POST \
-              "https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent" \
-              --header "Content-Type: application/json" \
-              --header "x-goog-api-key: ${GEMINI_API_KEY}" \
-              --data-binary "@$request_file")"; then
-
-              if [[ "$http_status" =~ ^2[0-9][0-9]$ ]]; then
-                break
-              fi
-
-              if [[ ! "$http_status" =~ ^(429|500|502|503|504)$ ]]; then
-                echo "::error::Gemini returned HTTP $http_status."
-                jq -r '.error.message // .' "$response_file" 2>/dev/null || true
-                exit 1
-              fi
-
-              echo "Temporary Gemini error: HTTP $http_status"
-            else
-              echo "Temporary HTTP/network failure."
-            fi
-
-            if [[ "$attempt" -eq 3 ]]; then
-              echo "::error::Gemini request failed after 3 attempts."
-              jq -r '.error.message // .' "$response_file" 2>/dev/null || true
+          http_status="$(curl -4 --silent --show-error \
+            --connect-timeout 15 \
+            --max-time 120 \
+            --output "$response_file" \
+            --write-out "%{http_code}" \
+            --request POST \
+            "https://router.huggingface.co/v1/chat/completions" \
+            --header "Authorization: Bearer ${HF_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$request_file")" || {
+              echo "::error::Hugging Face request failed at network level."
               exit 1
-            fi
+            }
 
-            delay=$((2 ** attempt))
-            echo "Retrying in $delay seconds..."
-            sleep "$delay"
-          done
-
-          review_text="$(jq -r '
-            [.candidates[0].content.parts[]?.text? // empty]
-            | join("\n")
-          ' "$response_file")"
-
-          if [[ -z "$review_text" ]]; then
-            echo "::error::Gemini returned no text response."
+          if [[ ! "$http_status" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::Hugging Face returned HTTP $http_status."
+            jq -r '.error.message // .error // .' "$response_file" 2>/dev/null || true
             exit 1
           fi
 
-          echo "Gemini API connection successful!"
-          echo "$review_text"
+          response="$(jq -r '.choices[0].message.content // empty' "$response_file")"
 
+          if [[ -z "$response" ]]; then
+            echo "::error::No response received from the model."
+            exit 1
+          fi
+
+          echo "Hugging Face API connection successful!"
+          echo "$response"
