@@ -1,15 +1,17 @@
-﻿using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Input;
-using LocalAI.Application.Abstractions;
+﻿using LocalAI.Application.Abstractions;
 using LocalAI.Application.Configuration;
 using LocalAI.Application.Models;
+using LocalAI.Desktop.Services;
 using LocalAI.Desktop.ViewModels;
 using LocalAI.Domain.Entities;
 using LocalAI.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Collections.ObjectModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace LocalAI.Desktop;
 
@@ -32,205 +34,42 @@ public partial class MainWindow
 
     private bool _isInitializing;
 
+    private readonly ThemeService _themeService;
+
     private CancellationTokenSource? _generationCancellation;
 
     public MainWindow(
-        IOptions<ApplicationOptions> applicationOptions,
-        ILogger<MainWindow> logger,
-        IModelService modelService,
-        IServiceScopeFactory scopeFactory)
+    IOptions<ApplicationOptions> applicationOptions,
+    ILogger<MainWindow> logger,
+    IModelService modelService,
+    ThemeService themeService,
+    IServiceScopeFactory scopeFactory)
     {
         InitializeComponent();
 
         _logger = logger;
         _modelService = modelService;
         _scopeFactory = scopeFactory;
-
+        _themeService = themeService;
+        ThemeComboBox.SelectedValue =
+    _themeService.CurrentTheme.ToString();
         MessagesItemsControl.ItemsSource = _messages;
 
         ConversationsListBox.ItemsSource =
             _conversations;
+
         ModelComboBox.ItemsSource = _models;
+
         Title = applicationOptions.Value.Name;
 
+        // Set welcome message using the Windows machine name.
+        WelcomeTextBlock.Text =
+            $"Welcome, {Environment.MachineName} 👋";
+
         _logger.LogInformation(
-            "LocalAI desktop application started.");        
+            "LocalAI desktop application started.");
     }
 
-    //private async void MainWindow_Loaded(
-    //    object sender,
-    //    RoutedEventArgs e)
-    //{
-    //    _isInitializing = true;
-    //    try
-    //    {
-    //        var models =
-    //            await _modelService
-    //                .GetAvailableModelsAsync();
-
-    //        _logger.LogInformation(
-    //            "Application discovered {ModelCount} model(s).",
-    //            models.Count);
-    //        _models.Clear();
-
-    //        foreach (var model in models)
-    //        {
-    //            _models.Add(model);
-    //        }
-    //        if (models.Count == 0)
-    //        {
-    //            ModelStatusTextBlock.Text = "No model";
-
-    //            _messages.Add(
-    //                new ChatMessageViewModel(
-    //                    false,
-    //                    "No local GGUF model was found."));
-
-    //            SendButton.IsEnabled = false;
-    //            return;
-    //        }
-    //        var defaultModel =
-    //        await _modelService
-    //            .GetDefaultModelAsync();
-
-    //        if (defaultModel is not null)
-    //        {
-    //            ModelComboBox.SelectedItem =
-    //                defaultModel;
-
-    //            try
-    //            {
-    //                SetModelStatus("Loading...");
-
-    //                ModelComboBox.IsEnabled = false;
-    //                SendButton.IsEnabled = false;
-    //                MessageTextBox.IsEnabled = false;
-
-    //                _modelService.SelectModel(
-    //                    defaultModel);
-
-    //                await _modelService.LoadSelectedModelAsync();
-
-    //                SetModelStatus("Ready");
-    //            }
-    //            catch (Exception ex)
-    //            {
-    //                SetModelStatus("Load failed");
-
-    //                _logger.LogError(
-    //                    ex,
-    //                    "Failed to load default model: {ModelName}.",
-    //                    defaultModel.Name);
-
-    //                SendButton.IsEnabled = false;
-    //            }
-    //            finally
-    //            {
-    //                ModelComboBox.IsEnabled = true;
-
-    //                var modelLoaded =
-    //                    _modelService.GetSelectedModel() is not null;
-
-    //                SendButton.IsEnabled = modelLoaded;
-    //                MessageTextBox.IsEnabled = modelLoaded;
-
-    //                if (modelLoaded)
-    //                {
-    //                    MessageTextBox.Focus();
-    //                }
-    //            }
-    //        }
-    //        using var scope =
-    //            _scopeFactory.CreateScope();
-
-    //        var conversationService =
-    //            scope.ServiceProvider
-    //                .GetRequiredService<IConversationService>();
-
-    //        var conversations =
-    //            await conversationService
-    //                .GetConversationsAsync();
-
-    //        _logger.LogInformation(
-    //            "Application loaded {ConversationCount} conversation(s).",
-    //            conversations.Count);
-
-    //        // Populate sidebar.
-    //        _conversations.Clear();
-
-    //        foreach (var conversation in conversations)
-    //        {
-    //            _conversations.Add(conversation);
-    //        }
-
-    //        if (conversations.Count > 0)
-    //        {
-    //            var latestConversationId =
-    //                conversations[0].Id;
-
-    //            _isLoadingConversation = true;
-
-    //            try
-    //            {
-    //                _conversation =
-    //                    await conversationService
-    //                        .GetConversationAsync(
-    //                            latestConversationId);
-
-    //                if (_conversation is not null)
-    //                {
-    //                    LoadConversationMessages(
-    //                        _conversation);
-
-    //                    ConversationsListBox.SelectedItem =
-    //                        conversations.FirstOrDefault(
-    //                            x =>
-    //                                x.Id ==
-    //                                _conversation.Id);
-
-    //                    _logger.LogInformation(
-    //                        "Restored conversation {ConversationId}: {ConversationTitle}.",
-    //                        _conversation.Id,
-    //                        _conversation.Title);
-    //                }
-    //            }
-    //            finally
-    //            {
-    //                _isLoadingConversation = false;
-    //                _isInitializing = false;
-    //            }
-    //        }
-    //        else
-    //        {
-    //            _conversation =
-    //                new Conversation(
-    //                    "New Conversation");
-
-    //            _logger.LogInformation(
-    //                "No existing conversations found. " +
-    //                "Created a new conversation.");
-    //        }
-
-    //        _logger.LogInformation(
-    //            "Model ready: {ModelName}.",
-    //            models[0].Name);
-
-    //        ScrollChatToBottom();
-    //    }
-    //    catch (Exception ex)
-    //    {
-    //        _logger.LogError(
-    //            ex,
-    //            "Failed to initialize LocalAI.");
-
-    //        _messages.Add(
-    //            new ChatMessageViewModel(
-    //                false,
-    //                $"Initialization error: {ex.Message}"));
-
-    //        SendButton.IsEnabled = false;
-    //    }
-    //}
 
     public async Task InitializeAsync(
     SplashWindow splashWindow)
@@ -346,6 +185,9 @@ public partial class MainWindow
 
                     if (_conversation is not null)
                     {
+                        WelcomePanel.Visibility =
+                        Visibility.Collapsed;
+
                         LoadConversationMessages(
                             _conversation);
 
@@ -371,6 +213,9 @@ public partial class MainWindow
                 _conversation =
                     new Conversation(
                         "New Conversation");
+
+                WelcomePanel.Visibility =
+                    Visibility.Visible;
 
                 _logger.LogInformation(
                     "No existing conversations found. " +
@@ -553,6 +398,9 @@ public partial class MainWindow
             return;
         }
 
+        WelcomePanel.Visibility =
+            Visibility.Collapsed;
+
         _generationCancellation =
             new CancellationTokenSource();
 
@@ -722,6 +570,9 @@ public partial class MainWindow
 
         _messages.Clear();
 
+        WelcomePanel.Visibility =
+            Visibility.Visible;
+
         MessageTextBox.Clear();
 
         ConversationsListBox.SelectedItem = null;
@@ -818,5 +669,29 @@ public partial class MainWindow
                 MessageTextBox.Focus();
             }
         }
+    }
+
+    private void ThemeComboBox_SelectionChanged(
+    object sender,
+    SelectionChangedEventArgs e)
+    {
+        if (ThemeComboBox.SelectedValue is not string selectedTheme)
+        {
+            return;
+        }
+
+        if (!Enum.TryParse<AppTheme>(
+                selectedTheme,
+                out var theme))
+        {
+            return;
+        }
+
+        if (theme == _themeService.CurrentTheme)
+        {
+            return;
+        }
+
+        _themeService.ApplyTheme(theme);
     }
 }
